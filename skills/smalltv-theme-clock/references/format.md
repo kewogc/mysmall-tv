@@ -6,17 +6,17 @@ Read it for every layer type, field, token, binding and limit:
 
 | Topic | Section |
 |---|---|
-| Root fields, IDs, `spec` | [Manifest](../../../docs/themes.md#manifest) |
-| Text, tokens, anchors | [Text](../../../docs/themes.md#text) |
-| Per-language text (spec 2) | [Localized text](../../../docs/themes.md#localized-text) |
-| Scrolling | [Scrolling text](../../../docs/themes.md#scrolling-text) |
-| Image, animation | [Image](../../../docs/themes.md#image), [Animation](../../../docs/themes.md#animation) |
-| Rectangle, circle, line | [Shape](../../../docs/themes.md#shape) |
-| Arc, hand, ticks (spec 2) | [Arcs, hands and tick marks](../../../docs/themes.md#arcs-hands-and-tick-marks-spec-2) |
-| `bind`, mapping, color stops, which property takes which | [Dynamic bindings](../../../docs/themes.md#dynamic-bindings), [Property matrix](../../../docs/themes.md#property-matrix) |
-| `time.*`, `device.*` (spec 2) | [Built-in sources](../../../docs/themes.md#built-in-sources) |
-| Fetched JSON | [Small JSON data sources](../../../docs/themes.md#small-json-data-sources) |
-| Sizes, counts, storage | [Limits and storage](../../../docs/themes.md#limits-and-storage) |
+| Root fields, IDs, `spec` | [Manifest](../../../docs/themes.md#манифест) |
+| Text, tokens, anchors | [Text](../../../docs/themes.md#текст) |
+| Per-language text (spec 2) | [Localized text](../../../docs/themes.md#локализованный-текст) |
+| Scrolling | [Scrolling text](../../../docs/themes.md#прокрутка-текста) |
+| Image, animation | [Image](../../../docs/themes.md#изображение), [Animation](../../../docs/themes.md#анимация) |
+| Rectangle, circle, line | [Shape](../../../docs/themes.md#фигура) |
+| Arc, hand, ticks (spec 2) | [Arcs, hands and tick marks](../../../docs/themes.md#дуги-стрелки-и-деления-spec-2) |
+| `bind`, mapping, color stops, which property takes which | [Dynamic bindings](../../../docs/themes.md#динамические-привязки), [Property matrix](../../../docs/themes.md#таблица-свойств) |
+| `time.*`, `device.*` (spec 2) | [Built-in sources](../../../docs/themes.md#встроенные-источники) |
+| Fetched JSON | [Small JSON data sources](../../../docs/themes.md#небольшие-источники-данных-json) |
+| Sizes, counts, storage | [Limits and storage](../../../docs/themes.md#ограничения-и-хранение) |
 
 In a clone of the repository, read the markdown file directly. Without network or a clone,
 rely on `stheme.py validate`: it is the source of truth for this skill (the repository's CI

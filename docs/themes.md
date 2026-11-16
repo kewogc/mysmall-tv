@@ -1,45 +1,45 @@
-# Theme clocks
+# Темы-циферблаты
 
-Theme Engine V1 is available on every display target except the lean ESP8266
-image (`smalltv_lean`), which drops it to keep the heap headroom it exists to
-protect. A theme is data and assets; it never contains executable code. Once
-the firmware supports themes, creating another clock face requires only theme
-files.
+Тема — это данные и ресурсы; исполняемого кода в ней нет. Чтобы сделать новый
+циферблат, достаточно файлов темы, прошивку пересобирать не нужно.
 
-## Install and select
+## Установка и выбор
 
-1. Open **Display → Theme clocks** in the device web UI.
-2. Choose a `.stheme` file and click **Install .stheme**.
-3. Choose the installed theme and click **Use theme**. Selection survives reboot.
-4. Set the timezone under **Clock & night mode**. Theme mode starts NTP even when
-   night mode is off. Unsynchronized time fields display `--`.
+1. Откройте в веб-интерфейсе часов **Display → Theme clocks**.
+2. Выберите файл `.stheme` и нажмите **Install .stheme**.
+3. Выберите установленную тему и нажмите **Use theme**. Выбор сохраняется после перезагрузки.
+4. Задайте часовой пояс в разделе **Clock & night mode**. Режим темы запускает NTP,
+   даже когда ночной режим выключен. Пока время не синхронизировано, поля времени
+   показывают `--`.
 
-The repository includes `examples/themes/pixel-room.stheme`, a complete example
-with a background, animated cat, time, and date. Its source assets and manifest
-are in `examples/themes/pixel-room/`. `examples/themes/live-status.stheme`
-demonstrates scrolling text and fetched-data bindings; see
-[Example: a dynamic dashboard](#example-a-dynamic-dashboard).
+В репозитории есть `examples/themes/pixel-room.stheme` — полный пример с фоном,
+анимированным котом, временем и датой. Его исходные ресурсы и манифест лежат в
+`examples/themes/pixel-room/`. `examples/themes/live-status.stheme` показывает
+прокрутку текста и привязки к полученным данным; см.
+[Пример: динамическая панель](#пример-динамическая-панель).
 
 
-## Create with an AI agent
+## Создание с помощью ИИ-агента
 
-The repository includes a skill in the [Agent Skills format](https://agentskills.io/),
+В репозитории есть навык в [формате Agent Skills](https://agentskills.io/) —
 [`skills/smalltv-theme-clock`](https://github.com/kewogc/mysmall-tv/tree/main/skills/smalltv-theme-clock).
-Describe the clock you want. The agent asks a few questions (digital or analog, 12 or 24
-hours, date, live data, colors), writes the source folder, and builds the `.stheme` with a
-PNG and animated GIF preview. Where it runs on your network, it can also install the theme
-on the TV.
+Опишите, какие часы вам нужны. Агент задаст несколько вопросов (цифровые или
+стрелочные, 12 или 24 часа, дата, живые данные, цвета), создаст исходную папку и
+соберёт `.stheme` с предпросмотром в PNG и анимированном GIF. Если агент работает
+в вашей сети, он может и установить тему на часы.
 
-To use it, copy the `skills/smalltv-theme-clock` folder into your agent's skills directory,
-or zip it (one top-level `smalltv-theme-clock/` folder) for apps that take skill uploads.
+Чтобы пользоваться навыком, скопируйте папку `skills/smalltv-theme-clock` в каталог
+навыков вашего агента или упакуйте её в zip (одна папка верхнего уровня
+`smalltv-theme-clock/`) для приложений, которые принимают навыки загрузкой.
 
-The skill ships its own pure-Python packer, validator and renderer (Python 3.9+ and Pillow),
-so it needs no compiler or PlatformIO. Its packages are byte-identical to
-`tools/smalltv_theme.py build` and its previews match the firmware renderer pixel for pixel.
-It uses spec 1 unless the design needs a spec 2 feature. Its default palette is the one from
+У навыка свои упаковщик, валидатор и рендерер на чистом Python (Python 3.9+ и
+Pillow), поэтому ему не нужны ни компилятор, ни PlatformIO. Его пакеты побайтно
+совпадают с результатом `tools/smalltv_theme.py build`, а предпросмотр совпадает
+с рендерером прошивки пиксель в пиксель. Он использует spec 1, если дизайну не
+нужна возможность из spec 2. Палитра по умолчанию взята из
 `examples/themes/live-status`.
 
-## Create a source theme
+## Создание исходной темы
 
 ```text
 pixel-room/
@@ -47,11 +47,12 @@ pixel-room/
 ├── images/background.png
 ├── animations/cat/000.png
 ├── animations/cat/001.png
-└── fonts/                  (spec 2: fonts, see Fonts in the package)
+└── fonts/                  (spec 2: шрифты, см. «Шрифты в пакете»)
 ```
 
-The desktop tools require Python 3.10+, Pillow and a C++11 compiler (`c++`, `g++`,
-or `clang++`; set `CXX` if needed). On Linux/macOS/WSL, prepare the dependencies:
+Инструментам на компьютере нужны Python 3.10+, Pillow и компилятор C++11 (`c++`,
+`g++` или `clang++`; при необходимости задайте `CXX`). В Linux/macOS/WSL
+подготовьте зависимости:
 
 ```bash
 python3 -m venv /tmp/smalltv-theme-venv
@@ -60,14 +61,14 @@ pip install -r tools/requirements-theme.txt
 pio pkg install -e smalltv_esp32_8mb
 ```
 
-PlatformIO provides the ArduinoJson headers and built-in font used by the firmware.
-An existing firmware build already has them. No device or firmware recompilation
-is needed: the native desktop adapter compiles automatically on first use and is
-cached under `.pio/theme-host/`. Alternatively, point `SMALLTV_ARDUINOJSON_INCLUDE`
-and `SMALLTV_GFX_INCLUDE` at library source directories containing `ArduinoJson.h`
-and `font/glcdfont.h`.
+PlatformIO даёт заголовки ArduinoJson и встроенный шрифт, которые использует
+прошивка. Если прошивка уже собиралась, они есть. Ни устройство, ни пересборка
+прошивки не нужны: нативный адаптер для компьютера компилируется сам при первом
+запуске и кэшируется в `.pio/theme-host/`. Другой вариант — указать в
+`SMALLTV_ARDUINOJSON_INCLUDE` и `SMALLTV_GFX_INCLUDE` каталоги с исходниками
+библиотек, где лежат `ArduinoJson.h` и `font/glcdfont.h`.
 
-Validate, build and preview a theme:
+Проверка, сборка и предпросмотр темы:
 
 ```bash
 python3 tools/smalltv_theme.py validate examples/themes/pixel-room
@@ -77,29 +78,31 @@ python3 tools/smalltv_theme.py preview /tmp/pixel-room.stheme /tmp/pixel-room.ht
   --time 2026-09-18T10:24:55 --seconds 10 --fps 15
 ```
 
-`validate` accepts a source directory or an installed-format `.stheme`. Both paths
-use the **firmware's actual C++ validation**, including every compiled frame. Source
-validation also checks asset decoding and safe relative paths. Errors identify the
-field or asset, for example `layers[0].color: expected a color in #RRGGBB form`.
-`build` validates before writing its output. The original
-`python3 tools/theme_pack.py SOURCE OUTPUT.stheme` command remains supported and
-now performs the same complete validation.
+`validate` принимает исходный каталог или `.stheme` в установочном формате. В
+обоих случаях работает **настоящая проверка прошивки на C++**, включая каждый
+скомпилированный кадр. Проверка исходников дополнительно смотрит, декодируются ли
+ресурсы и безопасны ли относительные пути. Ошибки называют поле или ресурс,
+например `layers[0].color: expected a color in #RRGGBB form`. `build` проверяет
+тему перед записью результата. Прежняя команда
+`python3 tools/theme_pack.py SOURCE OUTPUT.stheme` по-прежнему работает и теперь
+делает ту же полную проверку.
 
-Open the generated HTML in a browser. It contains the images and controls needed
-for offline playback, pause, seeking and replay. A ready-made example lives at
-`examples/themes/pixel-room-preview.html`; simply open it, without installing tools.
-Preview generation accepts source directories too. It uses the same C++ compositor,
-RGB565 blending and bitmap font as the device, and advances time across day/month/year
-boundaries. `--time` is the desired local wall time without a UTC offset, defaulting
-to the computer's current wall time. Duration is 1–60 seconds, sampled at 1–15 FPS.
-The recorded clip stops at its end; Replay restarts it. A lower preview sampling
-rate can skip intermediate animation frames. Panel correction, hardware latency
-and notifications are not simulated. The preview's playback controls are desktop
-HTML, never included in `.stheme` packages.
+Откройте полученный HTML в браузере. В нём есть изображения и элементы управления
+для автономного воспроизведения, паузы, перемотки и повтора. Готовый пример лежит
+в `examples/themes/pixel-room-preview.html` — его можно просто открыть, не ставя
+инструменты. Предпросмотр строится и из исходного каталога. Он использует тот же
+композитор на C++, то же смешивание RGB565 и тот же растровый шрифт, что и
+устройство, и корректно переходит через границы дня, месяца и года. `--time` —
+нужное местное время без смещения UTC, по умолчанию текущее время компьютера.
+Длительность — 1–60 секунд, частота выборки — 1–15 кадров в секунду. Записанный
+ролик останавливается в конце; Replay запускает его заново. При низкой частоте
+выборки промежуточные кадры анимации могут пропускаться. Коррекция панели,
+аппаратные задержки и уведомления не моделируются. Элементы управления
+предпросмотром — это HTML для компьютера, в пакеты `.stheme` они не попадают.
 
-A theme that declares `data` fields has nothing to fetch on a desktop, so preview
-generation accepts repeatable `--data source.field=value` arguments and holds
-those values for every sampled frame instead:
+Теме с полями `data` на компьютере получать данные неоткуда, поэтому предпросмотр
+принимает повторяемые аргументы `--data source.field=value` и держит эти значения
+для каждого кадра:
 
 ```bash
 python3 tools/smalltv_theme.py preview examples/themes/live-status \
@@ -109,23 +112,24 @@ python3 tools/smalltv_theme.py preview examples/themes/live-status \
   --data status.level=82 --data status.state=Warning
 ```
 
-Each key must reference a field declared in the theme's `data` block, exactly
-once; an unknown key, a missing `=`, an empty key, a duplicate key, or more than
-32 values fails the command before it writes any output. Injected values only
-affect the preview frames; they cannot change package validation or which
-assets are read. `examples/themes/live-status` is the reference fixture for this
-workflow — see [Example: a dynamic dashboard](#example-a-dynamic-dashboard).
+Каждый ключ должен ссылаться на поле, объявленное в блоке `data` темы, и
+встречаться один раз. Неизвестный ключ, отсутствие `=`, пустой ключ, повтор ключа
+или больше 32 значений — команда завершится ошибкой, ничего не записав.
+Подставленные значения влияют только на кадры предпросмотра; на проверку пакета и
+на то, какие ресурсы читаются, они не влияют. `examples/themes/live-status` —
+эталонный пример для этого сценария, см.
+[Пример: динамическая панель](#пример-динамическая-панель).
 
-This utility converts image pixels on your computer. The device reads RGB565
-assets directly; it does not decode PNG/GIF/TTF. The package stores the same
-manifest values, including logical source paths. A future compiler can replace
-the asset provider without changing those paths. GIF extraction and advanced
-compiler features are not implemented in V1. Images are stored compressed
-(STI2, see [Device package format](#device-package-format)) only in a theme
-with `"spec": 2`, and only such a theme can carry its own
-[fonts](#fonts-in-the-package), which the packer compiles from TrueType files.
+Эта утилита преобразует пиксели изображений на компьютере. Устройство читает
+ресурсы RGB565 напрямую и не декодирует PNG/GIF/TTF. В пакете хранятся те же
+значения манифеста, включая логические пути к исходникам. Будущий компилятор
+сможет заменить поставщика ресурсов, не меняя эти пути. Извлечение кадров из GIF
+и расширенные возможности компилятора в V1 не реализованы. Изображения хранятся
+сжатыми (STI2, см. [Формат пакета на устройстве](#формат-пакета-на-устройстве))
+только в теме с `"spec": 2`, и только такая тема может нести свои
+[шрифты](#шрифты-в-пакете), которые упаковщик компилирует из файлов TrueType.
 
-## Manifest
+## Манифест
 
 ```json
 {
@@ -139,38 +143,39 @@ with `"spec": 2`, and only such a theme can carry its own
 }
 ```
 
-All fields shown at the root, in `theme`, and in `display` are required.
-`spec` is 1 or 2. Spec 2 lets the packer store images as STI2, which is much
-smaller for images with transparent areas or few colours. Firmware up to
-3.1.1 refuses a spec 2 theme; when it has STI2 images, the message there is
-"Invalid or truncated .stheme package", because that firmware checks the
-images before it reads the manifest. A spec 1 theme packs exactly as before. Spec 2
-also lets a binding read a [built-in value](#built-in-sources). The
-canvas is always 240×240 with the origin at the top left. Coordinates and sizes
-are integer pixels. Layers draw in array order, back to front; IDs must be unique.
-Unknown fields, unsupported types, invalid values, and unknown text variables are
-rejected. Nothing evaluates expressions or runs scripts.
+Все поля, показанные в корне, в `theme` и в `display`, обязательны. `spec` равен
+1 или 2. Spec 2 позволяет упаковщику хранить изображения в STI2 — это намного
+компактнее для картинок с прозрачными областями или малым числом цветов.
+Прошивки до 3.1.1 включительно отвергают тему spec 2; если в ней есть изображения
+STI2, сообщение будет «Invalid or truncated .stheme package», потому что такая
+прошивка проверяет изображения раньше, чем читает манифест. Тема spec 1
+упаковывается точно как раньше. Spec 2 также позволяет привязке читать
+[встроенное значение](#встроенные-источники). Холст всегда 240×240, начало
+координат — в левом верхнем углу. Координаты и размеры — целые пиксели. Слои
+рисуются в порядке массива, от заднего к переднему; идентификаторы должны быть
+уникальными. Неизвестные поля, неподдерживаемые типы, недопустимые значения и
+неизвестные текстовые переменные отвергаются. Ничто не вычисляет выражения и не
+запускает скрипты.
 
-## Small JSON data sources
+## Небольшие источники данных JSON
 
-A theme may declare up to four small JSON sources. The firmware fetches each URL
-periodically and exposes only the declared fields to text layers. A response is
-limited to 2 KiB, and a source can declare at most eight fields. The minimum
-refresh interval is 10 seconds.
+Тема может объявить до четырёх небольших источников JSON. Прошивка периодически
+запрашивает каждый URL и отдаёт текстовым слоям только объявленные поля. Ответ
+ограничен 2 КиБ, у источника может быть не больше восьми полей. Минимальный
+интервал обновления — 10 секунд.
 
-One request is in flight at a time, and every request is bounded by a
-three-second deadline that header and body reads also check. On the ESP32 boards
-the fetch runs in a background task, so a stalled or slowly trickling response
-cannot hold up the display loop; the task's 8 KiB stack exists only while
-fetching, and connect and TLS handshake timeouts are also three seconds. The
-ESP8266 has no FreeRTOS, so there the fetch is one blocking call in the main
-loop, like the ticker and radar fetchers, and the display waits for it within
-the same deadline. An HTTPS fetch is skipped while free heap is below 18,000
-bytes and counts as a failed request. Switching themes cancels the old request
-and discards its result.
-Failed requests keep the last displayed values until the next scheduled attempt.
-When a value changes, only text whose rendered content changed is repainted,
-including the area needed to erase its previous contents.
+Одновременно выполняется один запрос, и каждый ограничен трёхсекундным сроком,
+который проверяется и при чтении заголовков, и при чтении тела. На платах ESP32
+запрос идёт в фоновой задаче, поэтому зависший или медленно капающий ответ не
+задерживает цикл отрисовки; стек задачи в 8 КиБ существует только на время
+запроса, а таймауты соединения и TLS-рукопожатия тоже равны трём секундам. На
+ESP8266 нет FreeRTOS, поэтому там запрос — один блокирующий вызов в основном
+цикле, как у загрузчиков котировок и радара, и экран ждёт его в пределах того же
+срока. HTTPS-запрос пропускается, пока свободной кучи меньше 18 000 байт, и
+считается неудачным. Смена темы отменяет прежний запрос и отбрасывает его
+результат. При неудачных запросах на экране остаются последние значения до
+следующей плановой попытки. Когда значение меняется, перерисовывается только
+текст, чьё содержимое изменилось, включая область, нужную для стирания прежнего.
 
 ```json
 {
@@ -194,198 +199,204 @@ including the area needed to erase its previous contents.
 }
 ```
 
-The `path` is a dotted path through JSON objects. Values are rendered as short
-strings; missing values show `--`. URLs must use `http://` or `https://`. Because
-this path cannot validate server certificates, an HTTPS source must explicitly
-set `"insecureTls": true`; omitting it rejects the package instead of silently
-accepting unauthenticated TLS. Data fetching is owned by theme mode and does not
-affect notifications or other display modes.
+`path` — путь через объекты JSON, разделённый точками. Значения выводятся
+короткими строками; отсутствующие показываются как `--`. URL должен начинаться с
+`http://` или `https://`. Поскольку этот путь не может проверить сертификат
+сервера, для HTTPS-источника нужно явно указать `"insecureTls": true`; без него
+пакет отвергается, а не принимает молча TLS без проверки подлинности. Получением
+данных владеет режим темы, на уведомления и другие режимы экрана оно не влияет.
 
-Installing a theme installs its data sources too: the device will periodically
-poll every URL the manifest declares, including addresses on your LAN. Only
-install themes from sources you trust — a manifest's `data` block is not
-sandboxed beyond the request limits above (2 KiB response, one in-flight
-request, three-second deadline).
+Установка темы устанавливает и её источники данных: устройство будет периодически
+опрашивать каждый URL из манифеста, включая адреса в вашей локальной сети.
+Ставьте темы только из источников, которым доверяете: блок `data` манифеста не
+изолирован ничем, кроме ограничений на запросы выше (ответ 2 КиБ, один запрос
+одновременно, срок три секунды).
 
-Fetched values are scalars used as-is: to interpolate into text (above), or to
-drive a layer's position, size, or color through the bindings below. There are
-no history buffers, line charts, arrays, aggregation, arithmetic expressions, or
-conditions in V1 — a fetched number maps to a property through exactly one
-declared, bounded rule.
+Полученные значения — скаляры, которые используются как есть: подставляются в
+текст (выше) либо управляют положением, размером или цветом слоя через привязки
+ниже. В V1 нет буферов истории, линейных графиков, массивов, агрегации,
+арифметических выражений и условий: полученное число отображается на свойство
+ровно одним объявленным ограниченным правилом.
 
-Every layer needs `id`, `type`, `x`, and `y`. The device clips geometry outside the
-canvas. Colors are exactly `#RRGGBB`, case insensitive; asset alpha is supported.
+Каждому слою нужны `id`, `type`, `x` и `y`. Устройство обрезает геометрию за
+пределами холста. Цвета задаются строго в виде `#RRGGBB`, регистр не важен;
+альфа-канал ресурсов поддерживается.
 
-### Text
+### Текст
 
-Required fields: `value`, `color`, and `size` unless a spec 2 layer names a
-`font` instead (see [Fonts in the package](#fonts-in-the-package)). Optional
-`anchor` defaults to `top-left`.
-Anchors position the complete text cell rectangle:
+Обязательные поля: `value`, `color` и `size`, если только слой spec 2 не называет
+вместо размера `font` (см. [Шрифты в пакете](#шрифты-в-пакете)). Необязательное
+`anchor` по умолчанию равно `top-left`. Якоря задают положение прямоугольника
+всего текста:
 
-| Vertical position | Left | Center | Right |
+| Положение по вертикали | Слева | По центру | Справа |
 | --- | --- | --- | --- |
-| Top | `top-left` | `top-center` | `top-right` |
-| Center | `center-left` | `center` | `center-right` |
-| Bottom | `bottom-left` | `bottom-center` | `bottom-right` |
+| Сверху | `top-left` | `top-center` | `top-right` |
+| По центру | `center-left` | `center` | `center-right` |
+| Снизу | `bottom-left` | `bottom-center` | `bottom-right` |
 
-V1 uses the built-in ASCII bitmap font. `size` is the exact cell height in pixels,
-8–96; cell width is `ceil(size × 6 / 8)`. No wrapping or multiline text. Sizes
-8, 16, 24, etc. give uniform pixel scaling. Text is transparent over lower layers.
-Month and weekday names are English in a `"spec": 1` theme; the device's configured
-timezone applies. In a `"spec": 2` theme they follow the device language
-(see [Localized text](#localized-text)).
+V1 использует встроенный растровый шрифт ASCII. `size` — точная высота знакоместа
+в пикселях, 8–96; ширина знакоместа — `ceil(size × 6 / 8)`. Переноса и
+многострочного текста нет. Размеры 8, 16, 24 и так далее дают равномерное
+масштабирование пикселей. Текст прозрачен поверх нижних слоёв. Названия месяцев и
+дней недели в теме `"spec": 1` английские; учитывается часовой пояс устройства. В
+теме `"spec": 2` они следуют языку устройства (см.
+[Локализованный текст](#локализованный-текст)).
 
-| Token | Value |
+| Токен | Значение |
 | --- | --- |
-| `{HH}` | 00–23 hour |
-| `{hh}` | 01–12 hour |
-| `{MM}` | 00–59 minute |
-| `{SS}` | 00–59 second |
-| `{DD}` | 01–31 day |
-| `{MON}` / `{MONTH}` | Abbreviated / full month |
-| `{WD}` / `{WEEKDAY}` | Abbreviated / full weekday |
-| `{YYYY}` | Year |
+| `{HH}` | час 00–23 |
+| `{hh}` | час 01–12 |
+| `{MM}` | минута 00–59 |
+| `{SS}` | секунда 00–59 |
+| `{DD}` | день 01–31 |
+| `{MON}` / `{MONTH}` | сокращённое / полное название месяца |
+| `{WD}` / `{WEEKDAY}` | сокращённое / полное название дня недели |
+| `{YYYY}` | год |
 
-A theme with `"spec": 2` also accepts these tokens, so one text can use the
-union of what this firmware and SmallTV Pomodoro offer. They need firmware
-v3.4.0 or later:
+Тема с `"spec": 2` принимает ещё и эти токены, так что один текст может
+использовать всё, что предлагают эта прошивка и SmallTV Pomodoro. Им нужна
+прошивка v3.4.0 или новее:
 
-| Token | Value |
+| Токен | Значение |
 | --- | --- |
-| `{H}` | 0–23 hour, no leading zero |
-| `{MO}` | 01–12 month number |
-| `{AMPM}` | `AM` for 00:00–11:59, `PM` for 12:00–23:59 |
-| `{device.focusToday}`, `{device.focusGoal}`, `{device.streak}`, `{device.humidity}`, `{device.temperature}` | The firmware's value, as text, exactly as it supplied it |
+| `{H}` | час 0–23 без ведущего нуля |
+| `{MO}` | номер месяца 01–12 |
+| `{AMPM}` | `AM` для 00:00–11:59, `PM` для 12:00–23:59 |
+| `{device.focusToday}`, `{device.focusGoal}`, `{device.streak}`, `{device.humidity}`, `{device.temperature}` | значение прошивки в виде текста, ровно как она его передала |
 
-`{hh}` is the 12-hour clock with a leading zero, so `{hh}:{MM} {AMPM}` reads
-`03:04 PM`; `{H}:{MM}` reads `15:04`. Like the other clock tokens, the three
-clock tokens show `--` until the clock has been set. A `{device.*}` token shows
-`--` when the firmware does not supply that value, which is always the case on
-this firmware today (see [Built-in sources](#built-in-sources)), so a layout
-that must also run here should leave room for `--`. The names are the same as
-for bindings; `time.*` is not a text token, because `{HH}`, `{MM}` and the other
-clock tokens already cover it.
+`{hh}` — 12-часовой формат с ведущим нулём, поэтому `{hh}:{MM} {AMPM}` даёт
+`03:04 PM`, а `{H}:{MM}` — `15:04`. Как и остальные токены времени, эти три
+показывают `--`, пока часы не установлены. Токен `{device.*}` показывает `--`,
+когда прошивка не передаёт такое значение, а в этой прошивке сейчас так всегда
+(см. [Встроенные источники](#встроенные-источники)), поэтому в макете, который
+должен работать и здесь, стоит оставить место под `--`. Имена те же, что и для
+привязок; `time.*` текстовым токеном не является, потому что `{HH}`, `{MM}` и
+другие токены времени уже покрывают его.
 
-In a `"spec": 1` theme none of these is accepted: `{H}`, `{MO}`, `{AMPM}` and
-`{device.*}` are unknown variables, so the package is refused when it is checked
-with `layers[n].value: use printable ASCII and declared clock/data variables only`,
-the same as any other unknown `{...}`. (A spec 1 theme that declares its own
-`data` source called `device` keeps using `{device.<field>}` as a fetched
-field, as before.) `tools/smalltv_theme.py preview --data device.temperature=21`
-supplies a device value for a spec 2 theme, to see what the layer shows with and
-without it.
+В теме `"spec": 1` ни один из них не принимается: `{H}`, `{MO}`, `{AMPM}` и
+`{device.*}` — неизвестные переменные, поэтому пакет отвергается при проверке с
+сообщением
+`layers[n].value: use printable ASCII and declared clock/data variables only`,
+как и любая другая неизвестная `{...}`. (Тема spec 1, которая объявляет
+собственный источник `data` с именем `device`, по-прежнему использует
+`{device.<field>}` как полученное поле.) Команда
+`tools/smalltv_theme.py preview --data device.temperature=21` подставляет значение
+устройства для темы spec 2, чтобы увидеть, что показывает слой с ним и без него.
 
-#### Localized text
+#### Локализованный текст
 
-Localized text needs firmware v3.4.0 or later. The device has a language setting (Settings, Clock & night mode, Language;
-`clock.lang` in the settings file). It takes `en`, `pt`, `es`, `fr`, `de` or `it`
-and defaults to `en`. In a `"spec": 2` theme:
+Локализованному тексту нужна прошивка v3.4.0 или новее. У устройства есть
+настройка языка (Settings, Clock & night mode, Language; `clock.lang` в файле
+настроек). Она принимает `en`, `pt`, `es`, `fr`, `de` или `it`, по умолчанию
+`en`. В теме `"spec": 2`:
 
-- `{MON}`, `{MONTH}`, `{WD}` and `{WEEKDAY}` come out in that language. The names
-  are plain ASCII, because the built-in font is (Portuguese `Marco`, `Terca-feira`,
-  Spanish `Miercoles`, French `Fevrier`, German `Maerz`), and the abbreviations come
-  from tables, not from cutting the name (French `Juin` and `Juil`, `Sept`;
-  Portuguese `Set`; German `Son`, `Mon`). A `"spec": 1` theme keeps English names, whatever the
-  device language.
-- A text layer's `value` may be an object with one string per language instead
-  of a single string:
+- `{MON}`, `{MONTH}`, `{WD}` и `{WEEKDAY}` выводятся на этом языке. Названия
+  записаны простым ASCII, потому что таков встроенный шрифт (португальские
+  `Marco`, `Terca-feira`, испанское `Miercoles`, французское `Fevrier`, немецкое
+  `Maerz`), а сокращения берутся из таблиц, а не обрезкой названия (французские
+  `Juin` и `Juil`, `Sept`; португальское `Set`; немецкие `Son`, `Mon`). Тема
+  `"spec": 1` сохраняет английские названия при любом языке устройства.
+- `value` текстового слоя может быть объектом со строкой на каждый язык вместо
+  одной строки:
 
 ```json
 {"id": "greeting", "type": "text", "x": 120, "y": 60, "anchor": "center", "size": 16, "color": "#ffffff",
  "value": {"en": "Today is {WEEKDAY}", "pt": "Hoje e {WEEKDAY}", "es": "Hoy es {WEEKDAY}"}}
 ```
 
-`en` is required and is shown for any language the object does not list, so a
-theme never shows an empty layer. The other keys are the codes above, in lower
-case; any other key is an error. Every string follows the rules of a plain `value`
-(1–128 printable ASCII bytes, only declared variables), is checked when the package
-is installed, and may use any variable. The object has at most six entries, one
-per language, and the non-English texts of a whole theme share 1,024 bytes of RAM: each counts
-28 bytes and, past 15 characters, its text too, so that is about 36 short ones or
-6 of 128 characters (the English ones are not counted). In a `"spec": 1` theme an object is refused with the layer named, so
-the package never installs half-working. Changing the device language redraws
-the text at once.
+`en` обязателен и показывается для любого языка, которого нет в объекте, так что
+тема никогда не покажет пустой слой. Остальные ключи — коды выше в нижнем
+регистре; любой другой ключ — ошибка. Каждая строка подчиняется правилам обычного
+`value` (1–128 печатных байт ASCII, только объявленные переменные), проверяется
+при установке пакета и может использовать любую переменную. В объекте не больше
+шести записей, по одной на язык, а неанглийские тексты всей темы делят 1 024
+байта ОЗУ: каждый занимает 28 байт, а если он длиннее 15 символов — ещё и сам
+текст. Это примерно 36 коротких строк или 6 строк по 128 символов (английские не
+считаются). В теме `"spec": 1` объект отвергается с указанием слоя, поэтому пакет
+никогда не установится наполовину рабочим. Смена языка устройства сразу
+перерисовывает текст.
 
-`smalltv_theme.py preview` takes `--lang CODE` to preview a language (default `en`).
-Text on a layer whose size or position depends on the language is up to the author:
-leave room for the longest string.
+`smalltv_theme.py preview` принимает `--lang CODE` для предпросмотра языка (по
+умолчанию `en`). Текст в слое, чьи размер или положение зависят от языка, — забота
+автора: оставьте место под самую длинную строку.
 
-#### Fonts in the package
+#### Шрифты в пакете
 
-Fonts need firmware v3.6.0 or later. A theme with `"spec": 2` can bring its own fonts, antialiased over the layers
-below. A text layer names one with `font` and gives no `size`: the font's line
-height is the layer's height. Layers without `font` keep the built-in font.
+Шрифтам нужна прошивка v3.6.0 или новее. Тема с `"spec": 2` может принести свои
+шрифты, сглаженные поверх нижних слоёв. Текстовый слой называет шрифт полем
+`font` и не задаёт `size`: высота слоя равна высоте строки шрифта. Слои без
+`font` используют встроенный шрифт.
 
 ```json
 {"id": "time", "type": "text", "x": 120, "y": 106, "anchor": "center",
  "value": "{HH}:{MM}", "font": "clock", "color": "#ffb000"}
 ```
 
-The packer compiles `fonts/clock.json` in the source theme into
-`fonts/clock.stf` in the package, from a TrueType file next to it:
+Упаковщик компилирует `fonts/clock.json` из исходной темы в `fonts/clock.stf` в
+пакете — из файла TrueType рядом:
 
 ```json
 {"file": "BebasNeue-Regular.ttf", "size": 80, "glyphs": "0123456789:"}
 ```
 
-| Field | Value |
+| Поле | Значение |
 | --- | --- |
-| `file` | A TrueType (`.ttf`, glyf outlines) file in `fonts/` |
-| `size` | Pixels per em, 4–200 |
-| `glyphs` | The printable ASCII characters to keep, for example `"0123456789:"` |
-| `fallback` | Optional: one of `glyphs`, or `-`, which every font keeps; drawn for any character the font lacks. Default `?` when kept, else `-` |
+| `file` | файл TrueType (`.ttf`, контуры glyf) в `fonts/` |
+| `size` | пикселей на em, 4–200 |
+| `glyphs` | печатные символы ASCII, которые нужно оставить, например `"0123456789:"` |
+| `fallback` | необязательно: один из `glyphs` или `-`, который есть в любом шрифте; рисуется вместо символа, которого в шрифте нет. По умолчанию `?`, если он оставлен, иначе `-` |
 
-Keep only the characters the theme shows: each costs flash in the package,
-not RAM on the device. For a clock face, the digits and `:` are enough; for
-`{WD}` and `{MON}`, add the letters of the names in each language the device
-may be set to (see [Localized text](#localized-text)), and of every string of a
-localized `value`. A character the
-font lacks, including any byte a fetched value brings outside printable
-ASCII, is drawn as the fallback glyph. Every font keeps `-`, which need not
-be listed: the device draws `--` for a value it does not have yet, such as
-`{HH}:{MM}` before the clock is set. The packer refuses a text layer whose
-text outside `{tokens}` has a character its font lacks. The line box fits the
-ink of the glyphs kept, so `anchor` places what is drawn; some of that ink
-must reach above the baseline. Each glyph's ink lies within its advance: the
-compiler widens a glyph's advance rather than cut off ink that reaches past
-it. The compiler reads the outlines itself, without
-FreeType, so the same font and settings give the same bytes on any computer.
-It does not apply hinting or kerning. To check a font on its own:
+Оставляйте только те символы, которые тема показывает: каждый занимает флеш в
+пакете, но не ОЗУ устройства. Для циферблата хватит цифр и `:`; для `{WD}` и
+`{MON}` добавьте буквы названий на каждом языке, который может быть выбран на
+устройстве (см. [Локализованный текст](#локализованный-текст)), и буквы каждой
+строки локализованного `value`. Символ, которого нет в шрифте, включая любой
+байт вне печатного ASCII из полученного значения, рисуется запасным глифом. В
+каждом шрифте есть `-`, перечислять его не нужно: устройство рисует `--` для
+значения, которого ещё нет, например `{HH}:{MM}` до установки часов. Упаковщик
+отвергает текстовый слой, в тексте которого вне `{токенов}` есть символ,
+отсутствующий в шрифте. Рамка строки подгоняется под рисунок оставленных глифов,
+поэтому `anchor` размещает именно то, что рисуется; часть рисунка должна
+выходить выше базовой линии. Рисунок каждого глифа лежит в пределах его шага:
+компилятор расширяет шаг глифа, а не обрезает рисунок, который за него выходит.
+Компилятор читает контуры сам, без FreeType, поэтому один и тот же шрифт с теми
+же настройками даёт одинаковые байты на любом компьютере. Хинтинг и кернинг не
+применяются. Проверить шрифт отдельно:
 
 ```bash
 python3 tools/theme_font.py fonts/BebasNeue-Regular.ttf /tmp/clock.stf --size 80 --glyphs 0123456789:
 ```
 
-A theme may use up to four fonts, and a package with more than four `.stf`
-entries is refused. The device keeps one byte per glyph in RAM (its advance,
-to lay out text) and reads the glyph bitmaps from the package while it
-draws, one glyph row at a time. A theme with a font layer also keeps the
-last 16 glyph records it read (128 bytes, allocated when the theme is
-loaded), so each row of a text reads only the bitmaps. Checking a font reads
-it in 64-byte pieces and yields to the system after every glyph; the largest
-font the format allows is about 1,040 reads.
+Тема может использовать до четырёх шрифтов; пакет, где записей `.stf` больше
+четырёх, отвергается. Устройство держит в ОЗУ один байт на глиф (его шаг, для
+раскладки текста), а растры глифов читает из пакета во время рисования, по одной
+строке глифа за раз. Тема со слоем на шрифте также хранит последние 16
+прочитанных записей глифов (128 байт, выделяются при загрузке темы), так что для
+каждой строки текста читаются только растры. Проверка шрифта читает его кусками
+по 64 байта и уступает управление системе после каждого глифа; самый большой
+шрифт, допустимый форматом, — это около 1 040 чтений.
 
-Fonts carry their own licence: use fonts whose licence allows embedding,
-such as the [SIL Open Font License](https://openfontlicense.org), and ship
-the licence text with the theme source. The package itself holds subsets of
-the font, so name the font, its copyright holder and its licence in the
-theme's `author`, which travels with the package. `examples/themes/bebas-clock`
-uses Bebas Neue (OFL, `fonts/OFL.txt`) in two sizes, with `"author":
-"mysmall-tv; font Bebas Neue (c) Dharma Type, OFL"`; its package is
-14,240 bytes.
+У шрифтов своя лицензия: используйте шрифты, лицензия которых разрешает
+встраивание, например [SIL Open Font License](https://openfontlicense.org), и
+кладите текст лицензии в исходники темы. В самом пакете лежат подмножества
+шрифта, поэтому укажите шрифт, правообладателя и лицензию в поле `author` темы —
+оно путешествует вместе с пакетом. `examples/themes/bebas-clock` использует
+Bebas Neue (OFL, `fonts/OFL.txt`) в двух размерах, с
+`"author": "mysmall-tv; font Bebas Neue (c) Dharma Type, OFL"`; его пакет
+занимает 14 240 байт.
 
-Firmware before 3.6.0 refuses a package with fonts with "Invalid or truncated
-.stheme package". A spec 1 manifest with `font` is rejected with
-`layers[N].font: needs "spec": 2`, and a spec 1 package with an `.stf` entry
-with `fonts/<name>.stf: font needs "spec": 2`. A font whose baseline is 0 or
-below the line box is refused with `fonts/<name>.stf: font baseline must be 1
-to the line height`.
+Прошивки до 3.6.0 отвергают пакет со шрифтами с сообщением «Invalid or truncated
+.stheme package». Манифест spec 1 с полем `font` отвергается с
+`layers[N].font: needs "spec": 2`, а пакет spec 1 с записью `.stf` — с
+`fonts/<name>.stf: font needs "spec": 2`. Шрифт, у которого базовая линия равна 0
+или лежит ниже рамки строки, отвергается с
+`fonts/<name>.stf: font baseline must be 1 to the line height`.
 
-#### Scrolling text
+#### Прокрутка текста
 
-A text layer whose rendered content is wider than a declared viewport can
-scroll horizontally, instead of being clipped:
+Текстовый слой, содержимое которого шире объявленного окна, может прокручиваться
+по горизонтали, а не обрезаться:
 
 ```json
 {"id": "headline", "type": "text", "x": 20, "y": 40, "value": "{status.label}",
@@ -393,50 +404,51 @@ scroll horizontally, instead of being clipped:
  "scroll": {"width": 200, "mode": "loop", "speed": 30, "pause": 1200, "gap": 24}}
 ```
 
-| `scroll` field | Type | Range | Required | Meaning |
+| Поле `scroll` | Тип | Диапазон | Обязательное | Смысл |
 | --- | --- | --- | --- | --- |
-| `width` | integer | 1–240 px | yes | Width of the clipping viewport |
-| `mode` | string | `"mode": "loop"`, `"mode": "bounce"` | yes | Motion behavior |
-| `speed` | integer | 1–240 px/s | yes | Horizontal speed |
-| `pause` | integer | 0–10000 ms | no, default 1000 | Hold time at the initial position, and for bounce, at both ends |
-| `gap` | integer | 0–240 px | loop only, default 24 | Blank space between repeated copies |
+| `width` | целое | 1–240 пикс. | да | ширина окна обрезки |
+| `mode` | строка | `"mode": "loop"`, `"mode": "bounce"` | да | характер движения |
+| `speed` | целое | 1–240 пикс./с | да | горизонтальная скорость |
+| `pause` | целое | 0–10000 мс | нет, по умолчанию 1000 | задержка в начальном положении, а для bounce — на обоих концах |
+| `gap` | целое | 0–240 пикс. | только loop, по умолчанию 24 | пустой промежуток между повторами текста |
 
-`gap` is rejected in bounce mode; it has no effect there. `x`, `y`, and `anchor`
-position the viewport, not the complete unscrolled string — `x: 120` with
-`anchor: center` centers the 200px viewport at x=120, not the full text. The
-viewport height is `size`; its width is `scroll.width`. It clips to the 240×240
-canvas like any other layer, and text is additionally clipped to the viewport
-even when a wider dirty region from another layer overlaps it.
+В режиме bounce `gap` отвергается: там он ни на что не влияет. `x`, `y` и
+`anchor` задают положение окна, а не всей непрокрученной строки: `x: 120` с
+`anchor: center` центрирует 200-пиксельное окно в x=120, а не весь текст. Высота
+окна — `size`, ширина — `scroll.width`. Окно обрезается по холсту 240×240, как
+любой слой, а текст дополнительно обрезается по окну, даже когда его перекрывает
+более широкая область перерисовки от другого слоя.
 
-If the rendered text fits within the viewport, it stays fixed at its initial
-position and never schedules a repaint. Otherwise scrolling starts after
-`pause` milliseconds. In `loop` mode, the text moves continuously in one
-direction; once it has scrolled past its own width plus `gap`, it wraps back to
-the start and pauses again — the gap is where a second, repeated copy would
-begin. In `bounce` mode, the text moves to its far edge, pauses, reverses, moves
-back to the start, and pauses again, alternating direction on every cycle.
-Timing uses elapsed milliseconds and a subpixel accumulator, the same technique
-frame animation already uses; a late update jumps directly to the due integer
-pixel offset rather than replaying intermediate frames, and 32-bit millisecond
-wraparound is handled correctly. A display write is scheduled only when the
-visible integer pixel offset actually changes.
+Если текст помещается в окно, он стоит в начальном положении и перерисовку не
+планирует. Иначе прокрутка начинается через `pause` миллисекунд. В режиме `loop`
+текст непрерывно движется в одну сторону; прокрутившись на свою ширину плюс
+`gap`, он возвращается в начало и снова делает паузу — промежуток находится там,
+где начинался бы второй, повторный экземпляр. В режиме `bounce` текст доходит до
+дальнего края, делает паузу, разворачивается, возвращается в начало и снова
+делает паузу, меняя направление в каждом цикле. Отсчёт ведётся по прошедшим
+миллисекундам с субпиксельным накопителем — так же, как в покадровой анимации;
+запоздавшее обновление сразу перескакивает к нужному целому смещению, не
+проигрывая промежуточные кадры, а переполнение 32-битного счётчика миллисекунд
+обрабатывается корректно. Запись на экран планируется, только когда видимое
+целое смещение действительно меняется.
 
-Changing the expanded text, or a binding that affects `size`, `scroll.width`, or
-`scroll.speed`, resets scroll position, phase, and direction to their initial
-state and restarts the pause. Any other change — an unrelated data value, a
-binding affecting `x` or color, or calling the engine's notification-recovery
-`invalidate()` — does not reset scroll progress; switching themes does.
+Изменение развёрнутого текста или привязки, влияющей на `size`, `scroll.width`
+или `scroll.speed`, сбрасывает положение, фазу и направление прокрутки в
+начальное состояние и перезапускает паузу. Любое другое изменение — постороннее
+значение данных, привязка к `x` или цвету, вызов `invalidate()` движка при
+восстановлении после уведомления — прокрутку не сбрасывает; смена темы
+сбрасывает.
 
-### Image
+### Изображение
 
 ```json
 {"id":"background","type":"image","x":0,"y":0,"source":"images/background.png"}
 ```
 
-Dimensions come from the asset, between 1×1 and 240×240. No runtime scaling.
-PNG alpha is preserved and composited against the layers below it.
+Размеры берутся из ресурса, от 1×1 до 240×240. Масштабирования на устройстве нет.
+Альфа-канал PNG сохраняется и смешивается со слоями ниже.
 
-### Shape
+### Фигура
 
 ```json
 {"id":"box","type":"shape","shape":"rectangle","x":20,"y":20,"width":200,"height":60,"cornerRadius":8,"fill":"#102030","stroke":"#ffffff","strokeWidth":2}
@@ -450,27 +462,28 @@ PNG alpha is preserved and composited against the layers below it.
 {"id":"line","type":"shape","shape":"line","x":20,"y":180,"x2":220,"y2":180,"stroke":"#ffffff","strokeWidth":2}
 ```
 
-Rectangles use a top-left origin; circles use a center and radius. Rectangle and
-circle strokes are inside their outer bounds. Lines use two endpoints, with a
-centered stroke and round ends. `strokeWidth` defaults to 1 and supports 1–32.
-Rectangles and circles need `fill`, `stroke`, or both; lines need `stroke`.
+У прямоугольника начало в левом верхнем углу; у круга задаются центр и радиус.
+Обводка прямоугольника и круга лежит внутри их внешних границ. У линии две
+конечные точки, обводка по центру и скруглённые концы. `strokeWidth` по умолчанию
+1, допустимо 1–32. Прямоугольнику и кругу нужны `fill`, `stroke` или оба; линии
+нужен `stroke`.
 
-A rectangle's `cornerRadius` is optional, defaults to 0 (square corners), and
-has a static manifest range of 0–120 px. After any bindings resolve, the
-effective radius is clamped to `floor(min(width, height) / 2)`, so a rectangle
-that shrinks (through a bound `width` or `height`) never draws rounding outside
-its own bounds. Fill occupies the rounded outer shape; stroke occupies the ring
-between that outer shape and an inner shape whose radius is
-`max(0, cornerRadius - strokeWidth)`. A dynamic width or height that resolves to
-zero makes the rectangle temporarily invisible, regardless of `cornerRadius`.
+`cornerRadius` прямоугольника необязателен, по умолчанию 0 (прямые углы), в
+манифесте допустимо 0–120 пикс. После вычисления привязок действующий радиус
+ограничивается значением `floor(min(width, height) / 2)`, поэтому прямоугольник,
+который сжимается (через привязанные `width` или `height`), никогда не рисует
+скругление за своими границами. Заливка занимает скруглённую внешнюю форму;
+обводка — кольцо между ней и внутренней формой с радиусом
+`max(0, cornerRadius - strokeWidth)`. Динамическая ширина или высота, равная
+нулю, делает прямоугольник временно невидимым при любом `cornerRadius`.
 
-#### Arcs, hands and tick marks (spec 2)
+#### Дуги, стрелки и деления (spec 2)
 
-Three more shapes exist only in a theme with `"spec": 2`, on firmware v3.4.0
-or later. A spec 1 theme that
-uses one is refused with `arc, hand and ticks need "spec": 2`, and a spec 1
-theme installs exactly as before. All three are drawn in `stroke` alone, with no
-`fill`, and take an optional `strokeWidth` of 1–32 (default 1).
+Ещё три фигуры есть только в теме с `"spec": 2` на прошивке v3.4.0 или новее.
+Тема spec 1, которая использует одну из них, отвергается с
+`arc, hand and ticks need "spec": 2`, а сама тема spec 1 ставится точно как
+раньше. Все три рисуются только обводкой `stroke`, без `fill`, и принимают
+необязательный `strokeWidth` 1–32 (по умолчанию 1).
 
 ```json
 {"id":"progress","type":"shape","shape":"arc","x":120,"y":120,"radius":100,"start":0,"sweep":270,"stroke":"#47c2ff","strokeWidth":10}
@@ -484,456 +497,473 @@ theme installs exactly as before. All three are drawn in `stroke` alone, with no
 {"id":"dial","type":"shape","shape":"ticks","x":120,"y":120,"radius":112,"count":12,"length":10,"stroke":"#8a8a8a","strokeWidth":3}
 ```
 
-Angles are whole degrees, **0 at 12 o'clock and growing clockwise**, so 90 is
-3 o'clock and a negative angle goes the other way (−90 is 9 o'clock).
+Углы — целые градусы, **0 на 12 часах, рост по часовой стрелке**: 90 — это 3
+часа, а отрицательный угол идёт в другую сторону (−90 — это 9 часов).
 
-* **`arc`** draws a ring segment about the center `x`, `y`: the outer edge is
-  `radius` and the band is `strokeWidth` wide inside it, like a circle's stroke.
-  It starts at `start` (−360 to 360) and runs `sweep` degrees (−360 to 360)
-  clockwise, or counter-clockwise when `sweep` is negative. A `sweep` of 360 or
-  more is a full ring and a `sweep` of 0 draws nothing, so a progress ring at 0 %
-  is simply empty. A `strokeWidth` of at least `radius` fills the wedge. The
-  ends are flat and radial. `radius` is 1–240.
-* **`hand`** draws a line through the pivot `x`, `y`, from `tail` (0–240,
-  default 0) behind it to `length` (1–240) in front, in direction `angle` (−360
-  to 360), with a centered stroke and round ends like `line`.
-* **`ticks`** draws `count` (1–60) evenly spaced radial marks around the center
-  `x`, `y`, the first at 12 o'clock. Each runs `length` (1–240, stopped at the
-  center) inward from `radius` (1–240), with round ends.
+* **`arc`** рисует сегмент кольца вокруг центра `x`, `y`: внешний край —
+  `radius`, полоса шириной `strokeWidth` лежит внутри него, как обводка круга.
+  Дуга начинается в `start` (от −360 до 360) и идёт `sweep` градусов (от −360 до
+  360) по часовой стрелке или против неё, когда `sweep` отрицателен. `sweep` 360
+  и больше — полное кольцо, `sweep` 0 не рисует ничего, так что кольцо прогресса
+  на 0 % просто пусто. `strokeWidth` не меньше `radius` заливает сектор. Концы
+  плоские, по радиусу. `radius` — 1–240.
+* **`hand`** рисует линию через ось `x`, `y`: от `tail` (0–240, по умолчанию 0)
+  позади оси до `length` (1–240) впереди, в направлении `angle` (от −360 до
+  360), с обводкой по центру и скруглёнными концами, как у `line`.
+* **`ticks`** рисует `count` (1–60) равномерно расположенных радиальных делений
+  вокруг центра `x`, `y`, первое — на 12 часах. Каждое идёт на `length` (1–240,
+  не дальше центра) внутрь от `radius` (1–240), со скруглёнными концами.
 
-`sweep` on an arc, `angle` on a hand and `radius` on an arc or ticks can be bound
-(see [Dynamic bindings](#dynamic-bindings)), with an `output` of −360 to 360 for
-`sweep` and `angle`. A minute hand is `angle` bound to the minute with `input`
-`[0, 60]` and `output` `[0, 360]`; a progress ring is `sweep` bound to a
-percentage with `input` `[0, 100]` and `output` `[0, 360]`. Nothing else about
-these shapes moves: `start`, `length`, `tail` and `count` are fixed.
+`sweep` дуги, `angle` стрелки и `radius` дуги или делений можно привязать (см.
+[Динамические привязки](#динамические-привязки)), с `output` от −360 до 360 для
+`sweep` и `angle`. Минутная стрелка — это `angle`, привязанный к минуте, с
+`input` `[0, 60]` и `output` `[0, 360]`; кольцо прогресса — `sweep`, привязанный
+к проценту, с `input` `[0, 100]` и `output` `[0, 360]`. Больше ничто в этих
+фигурах не движется: `start`, `length`, `tail` и `count` постоянны.
 
-Everything is drawn with integers, with no framebuffer and no table: a pixel is
-placed to within about a pixel of the exact geometry. When a bound angle or
-sweep changes, only the shape's old and new bounding boxes are repainted, so a
-single hand repaints two small boxes, not the dial behind it.
+Всё рисуется в целых числах, без кадрового буфера и без таблиц: пиксель ставится
+с точностью примерно до пикселя от точной геометрии. Когда привязанный угол или
+размах меняется, перерисовываются только старый и новый ограничивающие
+прямоугольники фигуры, так что одна стрелка перерисовывает два небольших
+прямоугольника, а не циферблат под ней.
 
-### Animation
+### Анимация
 
 ```json
 {"id":"cat","type":"animation","x":160,"y":170,"width":64,"height":64,"source":"animations/cat","frames":12,"fps":8,"loop":true}
 ```
 
-All shown fields are required. Source frames are `000.png`, `001.png`, etc.; their
-dimensions must exactly match `width` and `height`. Each animation has its own
-elapsed-time schedule, independent of clock text. Late rendering skips to the due
-frame instead of queuing work. `loop:false` holds the final frame. Pausing under a
-notification catches up when the theme becomes visible. Switching themes restarts
-the animation. Only the required pixel rows are read, never a whole animation.
-The renderer resolves each visible image/frame once per render pass and reuses
-its asset handle across rows and dirty regions.
+Все показанные поля обязательны. Исходные кадры — `000.png`, `001.png` и так
+далее; их размеры должны точно совпадать с `width` и `height`. У каждой анимации
+своё расписание по прошедшему времени, независимое от текста часов. Запоздавшая
+отрисовка перескакивает к нужному кадру, а не копит работу. `loop:false`
+оставляет последний кадр. После паузы под уведомлением анимация догоняет время,
+когда тема снова видна. Смена темы перезапускает анимацию. Читаются только
+нужные строки пикселей, а не вся анимация. Рендерер находит каждое видимое
+изображение или кадр один раз за проход и переиспользует дескриптор ресурса для
+всех строк и областей перерисовки.
 
-## Dynamic bindings
+## Динамические привязки
 
-`bind` is an optional object on any layer, keyed by a supported property name.
-Each key holds exactly one numeric mapping or color-stop binding, driven by a
-fetched scalar. A binding's `source` is the same declared
-`<data-source-id>.<field-id>` token accepted by text interpolation or, in a
-`"spec": 2` theme, a [built-in source](#built-in-sources). Bindings are
-recomputed from the parsed theme and the latest fetched values whenever those
-values change (and, for a binding on `time.*`, whenever the clock moves); the
-parsed manifest itself is never mutated. Only the changed
-region is repainted — the union of the layer's old and new visible bounds.
+`bind` — необязательный объект у любого слоя, ключи которого — имена
+поддерживаемых свойств. В каждом ключе ровно одно числовое отображение или
+привязка цветовых точек, которыми управляет полученный скаляр. `source` привязки
+— тот же объявленный токен `<id-источника>.<id-поля>`, что и в подстановке
+текста, либо, в теме `"spec": 2`, [встроенный источник](#встроенные-источники).
+Привязки пересчитываются из разобранной темы и последних полученных значений
+всякий раз, когда эти значения меняются (а для привязки к `time.*` — когда идут
+часы); сам разобранный манифест никогда не изменяется. Перерисовывается только
+изменившаяся область — объединение старых и новых видимых границ слоя.
 
-### Numeric mapping
+### Числовое отображение
 
 ```json
 {"bind": {"width": {"source": "status.level", "input": [0, 100], "output": [0, 200], "clamp": true}}}
 ```
 
-| Field | Type | Required | Rule |
+| Поле | Тип | Обязательное | Правило |
 | --- | --- | --- | --- |
-| `source` | string | yes | A declared data field or, in spec 2, a built-in source |
-| `input` | two finite numbers | yes | Endpoints must differ; ascending or descending is allowed |
-| `output` | two integers | yes | Both must fit the target property's safe range below |
-| `clamp` | boolean | no, default true | Clamp to the output endpoints when true |
+| `source` | строка | да | объявленное поле данных или, в spec 2, встроенный источник |
+| `input` | два конечных числа | да | концы должны различаться; допустим порядок по возрастанию и по убыванию |
+| `output` | два целых | да | оба должны укладываться в безопасный диапазон свойства (ниже) |
+| `clamp` | логическое | нет, по умолчанию true | при true ограничивает результат концами output |
 
-The mapping is linear:
+Отображение линейное:
 
 ```text
 output0 + (source - input0) * (output1 - output0) / (input1 - input0)
 ```
 
-The result is rounded to the nearest integer, halves away from zero. When
-`clamp` is true, the source value is limited to the interval between the two
-`input` endpoints before interpolation. When `clamp` is false, extrapolation
-beyond that interval is permitted, but the final integer is still clamped to
-the property's safe range below — that clamp cannot be disabled. A missing,
-partial, or non-finite fetched value leaves the static manifest value in
-effect for that property, so a theme always has a valid fallback appearance.
+Результат округляется до ближайшего целого, половины — от нуля. Когда `clamp`
+равен true, исходное значение перед интерполяцией ограничивается отрезком между
+двумя концами `input`. Когда `clamp` равен false, экстраполяция за этот отрезок
+разрешена, но итоговое целое всё равно ограничивается безопасным диапазоном
+свойства ниже — это ограничение отключить нельзя. При отсутствующем, неполном
+или не конечном полученном значении для свойства действует статическое значение
+из манифеста, так что у темы всегда есть корректный запасной вид.
 
-| Property | Safe range |
+| Свойство | Безопасный диапазон |
 | --- | --- |
-| `x`, `y`, `x2`, `y2` | −240 through 479 |
+| `x`, `y`, `x2`, `y2` | от −240 до 479 |
 | `width`, `height`, `radius` | 0–240 |
-| `cornerRadius` | 0–120, then limited to half the resolved rectangle size |
+| `cornerRadius` | 0–120, затем не больше половины вычисленного размера прямоугольника |
 | `size` | 8–96 |
 | `strokeWidth` | 1–32 |
 | `scroll.width` | 1–240 |
 | `scroll.speed` | 1–240 |
 
-### Color stops
+### Цветовые точки (color stops)
 
 ```json
 {"bind": {"fill": {"source": "status.level",
   "stops": [{"at": 0, "value": "#35c46a"}, {"at": 60, "value": "#f0b429"}, {"at": 80, "value": "#e5484d"}]}}}
 ```
 
-| Field | Type | Required | Rule |
+| Поле | Тип | Обязательное | Правило |
 | --- | --- | --- | --- |
-| `source` | string | yes | A declared data field or, in spec 2, a built-in source |
-| `stops` | array | yes | 1–8 entries |
-| `stops[].at` | finite number | yes | Strictly increasing |
-| `stops[].value` | `#RRGGBB` | yes | Existing color syntax |
+| `source` | строка | да | объявленное поле данных или, в spec 2, встроенный источник |
+| `stops` | массив | да | 1–8 записей |
+| `stops[].at` | конечное число | да | строго по возрастанию |
+| `stops[].value` | `#RRGGBB` | да | обычная запись цвета |
 
-The selected color is the last stop whose `at` is less than or equal to the
-fetched value; a value below the first stop's `at` uses the first stop's color.
-Every finite fetched number therefore has a color, with no separate default
-branch. A missing or non-finite fetched value leaves the static manifest color
-in effect.
+Выбирается цвет последней точки, у которой `at` меньше или равен полученному
+значению; значение ниже `at` первой точки берёт цвет первой точки. Поэтому у
+любого конечного полученного числа есть цвет, и отдельная ветка по умолчанию не
+нужна. При отсутствующем или не конечном значении действует статический цвет из
+манифеста.
 
-### Property matrix
+### Таблица свойств
 
-Each property may be bound once; a layer may bind at most eight properties. A
-color property may be bound only when that property already exists statically
-on the layer — binding `stroke` does not implicitly enable a missing stroke,
-and `scroll.width`/`scroll.speed` require a static `scroll` object. Image and
-animation dimensions are not bindable, because runtime asset scaling is
-unsupported and their declared size must match packaged assets.
+Каждое свойство можно привязать один раз; у слоя может быть не больше восьми
+привязанных свойств. Цветовое свойство можно привязать, только если оно уже
+задано у слоя статически: привязка `stroke` не включает отсутствующую обводку, а
+для `scroll.width`/`scroll.speed` нужен статический объект `scroll`. Размеры
+изображений и анимаций привязать нельзя, потому что масштабирования ресурсов на
+устройстве нет и объявленный размер должен совпадать с упакованными ресурсами.
 
-| Layer | Numeric properties | Color properties |
+| Слой | Числовые свойства | Цветовые свойства |
 | --- | --- | --- |
-| text | `x`, `y`, `size` (not with a `font`), `scroll.width`, `scroll.speed` | `color` |
+| text | `x`, `y`, `size` (не вместе с `font`), `scroll.width`, `scroll.speed` | `color` |
 | rectangle | `x`, `y`, `width`, `height`, `cornerRadius`, `strokeWidth` | `fill`, `stroke` |
 | circle | `x`, `y`, `radius`, `strokeWidth` | `fill`, `stroke` |
 | line | `x`, `y`, `x2`, `y2`, `strokeWidth` | `stroke` |
 | arc (spec 2) | `x`, `y`, `radius`, `sweep`, `strokeWidth` | `stroke` |
 | hand (spec 2) | `x`, `y`, `angle`, `strokeWidth` | `stroke` |
 | ticks (spec 2) | `x`, `y`, `radius`, `strokeWidth` | `stroke` |
-| image | `x`, `y` | none |
-| animation | `x`, `y` | none |
+| image | `x`, `y` | нет |
+| animation | `x`, `y` | нет |
 
-An inapplicable property, a duplicate binding target, an unknown binding key,
-or a source that is not a declared data field rejects the package, for example
-`layers[0].bind.width: binding is not applicable to this layer` or
-`layers[0].bind.width.source: expected a declared data field`. Invalid `scroll`
-fields are diagnosed the same way, for example `layers[0].scroll.mode: expected
-loop or bounce` or `layers[0].scroll.gap: not allowed in bounce mode`.
+Неприменимое свойство, повторная цель привязки, неизвестный ключ привязки или
+источник, который не является объявленным полем данных, приводят к отказу
+пакета, например
+`layers[0].bind.width: binding is not applicable to this layer` или
+`layers[0].bind.width.source: expected a declared data field`. Недопустимые поля
+`scroll` диагностируются так же, например
+`layers[0].scroll.mode: expected loop or bounce` или
+`layers[0].scroll.gap: not allowed in bounce mode`.
 
-### Built-in sources
+### Встроенные источники
 
-A theme with `"spec": 2` may name a value the firmware already has instead of a
-fetched field, and everything above applies to it unchanged: the same numeric
-mapping and clamping, the same color stops, the same fallback to the layer's
-static value when there is no value. Use them exactly like a data field, for
-example a seconds bar that needs no `data` block:
+Тема с `"spec": 2` может вместо полученного поля назвать значение, которое у
+прошивки уже есть, и всё сказанное выше относится к нему без изменений: то же
+числовое отображение и ограничение, те же цветовые точки, тот же возврат к
+статическому значению слоя, когда значения нет. Используются они точно как поле
+данных, например полоса секунд, которой не нужен блок `data`:
 
 ```json
 {"id": "sec", "type": "shape", "shape": "rectangle", "x": 20, "y": 200, "width": 1, "height": 6, "fill": "#ff5a47",
  "bind": {"width": {"source": "time.second", "input": [0, 59], "output": [0, 200]}}}
 ```
 
-| Source | Range | Meaning |
+| Источник | Диапазон | Смысл |
 | --- | --- | --- |
-| `time.second` | 0–59 | Second of the minute |
-| `time.minute` | 0–59 | Minute of the hour |
-| `time.hour` | 0–23 | Hour, 24-hour clock |
-| `time.hour12` | 0–11 | Hour, 12-hour clock (midnight and noon are 0) |
-| `time.secondOfDay` | 0–86399 | Seconds since midnight |
-| `time.day` | 1–31 | Day of the month |
-| `time.month` | 1–12 | Month, January is 1 |
-| `time.weekday` | 0–6 | Day of the week, Sunday is 0 |
-| `time.moon` | 0–29 | Age of the moon in whole days: 0 is the new moon, 14–15 the full moon |
+| `time.second` | 0–59 | секунда минуты |
+| `time.minute` | 0–59 | минута часа |
+| `time.hour` | 0–23 | час, 24-часовой формат |
+| `time.hour12` | 0–11 | час, 12-часовой формат (полночь и полдень — 0) |
+| `time.secondOfDay` | 0–86399 | секунд с полуночи |
+| `time.day` | 1–31 | день месяца |
+| `time.month` | 1–12 | месяц, январь — 1 |
+| `time.weekday` | 0–6 | день недели, воскресенье — 0 |
+| `time.moon` | 0–29 | возраст Луны в целых днях: 0 — новолуние, 14–15 — полнолуние |
 
-`time.moon` needs no network. It counts the time since a reference new moon,
-2000-01-06 18:14 UTC, modulo the mean synodic month of 29.530588 days (29 d 12 h
-44 min 3 s), and drops the fraction. The result is 0 to 29, and it steps up by
-one every 24 hours, then falls from 29 to 0 at the next new moon. Because it
-uses the mean month, the real moon is up to about 0.75 days early or 0.4 days
-late: checked against the US Naval Observatory's times for 150 new and full
-moons from 2020 to 2030, a true new moon reads 28, 29 or 0 and a true full moon
-reads 14 or 15. Use `input: [0, 29]` and treat 28 to 1 as new and 13 to 16 as
-full if a theme needs a safe margin. The value is computed from the clock in
-the configured timezone as if it were UTC, which adds up to the offset
-(at most about half a day) to that error. Before the clock is set there is no
-value.
+`time.moon` не требует сети. Он считает время от опорного новолуния, 2000-01-06
+18:14 UTC, по модулю среднего синодического месяца в 29,530588 дня (29 д 12 ч 44
+мин 3 с) и отбрасывает дробную часть. Результат — от 0 до 29; он растёт на
+единицу каждые 24 часа, а в следующее новолуние падает с 29 до 0. Поскольку
+используется средний месяц, настоящая Луна опережает расчёт примерно на 0,75 дня
+или отстаёт до 0,4 дня: при проверке по данным Военно-морской обсерватории США
+для 150 новолуний и полнолуний с 2020 по 2030 год настоящее новолуние даёт 28,
+29 или 0, а настоящее полнолуние — 14 или 15. Используйте `input: [0, 29]` и
+считайте 28–1 новолунием, а 13–16 полнолунием, если теме нужен запас. Значение
+вычисляется по часам в настроенном часовом поясе так, как если бы это было UTC,
+что добавляет к ошибке величину смещения (не больше примерно половины дня). До
+установки часов значения нет.
 
-`time.*` follows the same clock as `{HH}` and the other date and time text
-variables, in the configured timezone. Until the clock has been set (no NTP
-yet) there is no value, so the layer keeps its static value. A layer bound to a
-`time.*` source repaints only when the bound property actually changes: a
-`time.second` bar repaints its own rectangle once a second, a `time.minute`
-bar once a minute, and neither makes the rest of the canvas redraw.
+`time.*` следует тем же часам, что `{HH}` и другие текстовые переменные даты и
+времени, в настроенном часовом поясе. Пока часы не установлены (NTP ещё не
+ответил), значения нет, и слой сохраняет статическое значение. Слой, привязанный
+к источнику `time.*`, перерисовывается, только когда привязанное свойство
+действительно меняется: полоса `time.second` перерисовывает свой прямоугольник
+раз в секунду, полоса `time.minute` — раз в минуту, и ни та, ни другая не
+заставляет перерисовываться остальной холст.
 
-`device.*` sources are optional values a firmware supplies from something the
-theme engine itself does not know about. The names are fixed:
-`device.focusToday`, `device.focusGoal`, `device.streak`, `device.humidity` and
-`device.temperature`. A firmware that does not supply one leaves the layer on
-its static value, exactly like a fetched field that is missing, so one theme
-can run on firmwares with and without it. SmallTV Pomodoro supplies all five.
-This firmware has no sensor and no focus timer, so it supplies none of them
-today; the engine takes them from the firmware through `Engine::setDeviceValues()`
-and they are always strings holding a number, like fetched fields. A `device.*`
-value is never read from a theme's `data` block, and a fetched field cannot
-shadow one.
+Источники `device.*` — необязательные значения, которые прошивка передаёт из
+того, о чём сам движок тем не знает. Имена фиксированы: `device.focusToday`,
+`device.focusGoal`, `device.streak`, `device.humidity` и `device.temperature`.
+Если прошивка значение не передаёт, слой остаётся на статическом значении, точно
+как при отсутствующем полученном поле, поэтому одна тема работает на прошивках и
+с этим значением, и без него. SmallTV Pomodoro передаёт все пять. В этой
+прошивке нет ни датчика, ни таймера фокусировки, поэтому сейчас она не передаёт
+ни одного; движок получает их от прошивки через `Engine::setDeviceValues()`, и
+это всегда строки с числом, как полученные поля. Значение `device.*` никогда не
+читается из блока `data` темы, и полученное поле не может его заслонить.
 
-In a `"spec": 1` theme these names are refused when the package is checked, with
-`layers[0].bind.width.source: time.* and device.* sources need "spec": 2`. Spec 1
-keeps its rule that `source` must be a declared data field. In spec 2, `time`
-and `device` can no longer be used as the `id` of a `data` source, since
-`time.second` would then be ambiguous. A name that starts with `time.` or
-`device.` but is not in the tables is rejected with `unknown time.* or device.* name`.
+В теме `"spec": 1` эти имена отвергаются при проверке пакета с
+`layers[0].bind.width.source: time.* and device.* sources need "spec": 2`. В spec
+1 остаётся правило, что `source` должен быть объявленным полем данных. В spec 2
+`time` и `device` больше нельзя использовать как `id` источника `data`, потому
+что `time.second` стал бы неоднозначным. Имя, которое начинается с `time.` или
+`device.`, но отсутствует в таблицах, отвергается с
+`unknown time.* or device.* name`.
 
-#### Data age: `<source>.age`
+#### Возраст данных: `<source>.age`
 
-Data age needs firmware v3.6.0 or later. In a `"spec": 2` theme every `data` source also has an `age` field that the
-theme does not declare: `w.age` for a source with the ID `w`. It is the time
-since the source's last successful fetch, in whole minutes (0 up to 71582, about
-49.7 days, where it stops). Use it like any fetched field, in a binding or in
-text (`{w.age}`), for example to mark data that has gone stale.
+Возрасту данных нужна прошивка v3.6.0 или новее. В теме `"spec": 2` у каждого
+источника `data` есть ещё поле `age`, которое тема не объявляет: `w.age` для
+источника с идентификатором `w`. Это время с последнего успешного запроса
+источника в целых минутах (от 0 до 71582, около 49,7 дня, где счёт
+останавливается). Используйте его как любое полученное поле, в привязке или в
+тексте (`{w.age}`), например чтобы пометить устаревшие данные.
 
-- Before the first successful fetch the age is unknown: there is no value. A
-  binding keeps its static value and text shows `--`, exactly like a fetched
-  field that is missing.
-- A successful fetch sets the age to 0. A failed one (no connection, an HTTP
-  status other than 200, a reply that is cut off, too large or not JSON) changes
-  nothing, so the age keeps growing from the last success. A reply that is valid
-  JSON but lacks a declared field is still a success; that field shows `--`.
-- The age is the time since the fetch ended, not the age of the data at the
-  server. It counts the device's run time, not the clock, so it works before
-  the clock is set, and a change of the time or timezone does not move it.
-- It is a whole number that goes up once a minute, so a layer bound to it
-  repaints at most once a minute. After a restart it is unknown again.
-- A source that declares a field of its own called `age` keeps that field; no
-  built-in age is added to that source.
-- In a `"spec": 1` theme `w.age` is refused like any name that is not a declared
-  field.
+- До первого успешного запроса возраст неизвестен: значения нет. Привязка
+  сохраняет статическое значение, а текст показывает `--`, точно как при
+  отсутствующем полученном поле.
+- Успешный запрос сбрасывает возраст в 0. Неудачный (нет соединения, код HTTP не
+  200, ответ обрезан, слишком велик или не JSON) ничего не меняет, так что
+  возраст продолжает расти с последнего успеха. Ответ, который является
+  корректным JSON, но не содержит объявленного поля, всё равно успех; это поле
+  показывает `--`.
+- Возраст — это время с окончания запроса, а не возраст данных на сервере. Он
+  считает время работы устройства, а не часы, поэтому работает до установки
+  часов, и смена времени или часового пояса его не сдвигает.
+- Это целое число, которое растёт раз в минуту, так что привязанный к нему слой
+  перерисовывается не чаще раза в минуту. После перезагрузки возраст снова
+  неизвестен.
+- Источник, который объявляет собственное поле `age`, сохраняет его; встроенный
+  возраст к такому источнику не добавляется.
+- В теме `"spec": 1` `w.age` отвергается, как любое имя, не являющееся
+  объявленным полем.
 
-## Example: a dynamic dashboard
+## Пример: динамическая панель
 
-`examples/themes/live-status` builds `examples/themes/live-status.stheme` from a
-theme declaring one data source (`status`, with `label`, `level`, and `state`
-fields) and every capability above:
+`examples/themes/live-status` собирает `examples/themes/live-status.stheme` из
+темы, которая объявляет один источник данных (`status` с полями `label`, `level`
+и `state`) и использует все возможности выше:
 
-* `headline` — a `loop`-scrolling `{status.label}` text viewport;
-* `headline-bounce` — a second, `bounce`-scrolling label, so both scroll modes
-  are copyable side by side;
-* `level-track` and `level-bar` — a rounded track and a bar whose `width` maps
-  fetched level 0–100 to 0–200 px, with `fill` selected from green/amber/red
-  color stops at the same thresholds;
-* `level-caption` — status text whose `color` is bound from the same numeric
-  `status.level` field, through color stops rather than a numeric mapping.
+* `headline` — окно с текстом `{status.label}`, прокручиваемым в режиме `loop`;
+* `headline-bounce` — вторая надпись с прокруткой `bounce`, чтобы оба режима
+  можно было скопировать рядом;
+* `level-track` и `level-bar` — скруглённая дорожка и полоса, `width` которой
+  отображает полученный уровень 0–100 в 0–200 пикс., а `fill` выбирается из
+  зелёной, янтарной и красной цветовых точек на тех же порогах;
+* `level-caption` — текст статуса, `color` которого привязан к тому же числовому
+  полю `status.level` через цветовые точки, а не через числовое отображение.
 
-Every layer also has valid static fallback geometry and colors, so the theme
-produces a correct first frame even before any fetch completes. Rebuild and
-preview it with the `--data` workflow documented above.
+У каждого слоя есть и корректные статические геометрия и цвета, поэтому тема
+даёт правильный первый кадр ещё до завершения первого запроса. Пересоберите и
+посмотрите её через сценарий с `--data`, описанный выше.
 
-## Limits and storage
+## Ограничения и хранение
 
-| Item | V1 limit |
+| Что | Ограничение V1 |
 | --- | --- |
-| Manifest | 16 KiB, nesting depth 8 |
-| Layers | 32 |
-| IDs | 1–48 ASCII letters, digits, `_`, `-` |
-| Theme name / author / version | 96 / 96 / 32 bytes |
-| Text template | 1–128 printable ASCII bytes |
-| Localized text | Up to 6 languages, 1–128 printable ASCII bytes each, `en` required; 1,024 bytes of non-English text per theme; spec 2 only |
-| Coordinates | −240 through 479, clipped to the canvas |
-| Rectangle/image/frame dimensions | 1–240 pixels |
-| Circle radius | 1–240 pixels |
-| Arc / ticks radius | 1–240 pixels |
-| Arc start, sweep; hand angle | −360 to 360 degrees |
-| Hand length / tail; tick length | 1–240 / 0–240 / 1–240 pixels |
-| Tick count | 1–60 |
-| Animation | 1–240 frames, 1–15 FPS |
-| Fonts (spec 2) | 4 per theme; names 1–32 ID characters; printable ASCII glyphs; line height 6–96 pixels; advance 1–120 pixels; 65,535 bytes of glyph bitmaps |
-| Container | 256 entries, at most 3 MiB |
-| Installed packages | 16, within available storage |
+| Манифест | 16 КиБ, глубина вложенности 8 |
+| Слои | 32 |
+| Идентификаторы | 1–48 символов: буквы ASCII, цифры, `_`, `-` |
+| Название темы / автор / версия | 96 / 96 / 32 байта |
+| Шаблон текста | 1–128 печатных байт ASCII |
+| Локализованный текст | до 6 языков, 1–128 печатных байт ASCII каждый, `en` обязателен; 1 024 байта неанглийского текста на тему; только spec 2 |
+| Координаты | от −240 до 479, обрезаются по холсту |
+| Размеры прямоугольника / изображения / кадра | 1–240 пикселей |
+| Радиус круга | 1–240 пикселей |
+| Радиус дуги / делений | 1–240 пикселей |
+| Начало и размах дуги; угол стрелки | от −360 до 360 градусов |
+| Длина стрелки / хвост; длина деления | 1–240 / 0–240 / 1–240 пикселей |
+| Число делений | 1–60 |
+| Анимация | 1–240 кадров, 1–15 кадров в секунду |
+| Шрифты (spec 2) | 4 на тему; имена из 1–32 символов идентификатора; глифы печатного ASCII; высота строки 6–96 пикселей; шаг 1–120 пикселей; 65 535 байт растров глифов |
+| Контейнер | 256 записей, не больше 3 МиБ |
+| Установленные пакеты | 16, в пределах свободного места |
 
-Packages live under `/themes/<id>.stheme`. Upload uses `/themes/.upload`; every
-entry, manifest, and referenced animation frame is checked before a rename makes
-the package visible. Failed or interrupted uploads leave existing themes and
-selection intact. Boot removes an abandoned staging file. Installation reserves
-space for settings and filesystem metadata. Settings saves use a temporary file,
-check the complete byte count, then rename over the old config. Reading,
-saving and importing settings free the running theme first when the heap is
-short, and a save that still runs out of memory fails with "not enough
-memory" and keeps the old settings.
+Пакеты лежат в `/themes/<id>.stheme`. Загрузка идёт через `/themes/.upload`;
+каждая запись, манифест и каждый упомянутый кадр анимации проверяются до
+переименования, которое делает пакет видимым. Неудачная или прерванная загрузка
+не трогает существующие темы и выбор. При загрузке системы брошенный временный
+файл удаляется. Установка резервирует место под настройки и метаданные файловой
+системы. Сохранение настроек пишет во временный файл, проверяет полное число
+байт, затем переименовывает его поверх старого конфига. Чтение, сохранение и
+импорт настроек сначала освобождают работающую тему, когда кучи мало, а
+сохранение, которому памяти всё равно не хватило, завершается ошибкой «not
+enough memory» и оставляет старые настройки.
 
-Installing, selecting and removing a theme, and listing a package that has no
-line in the theme index yet, each check a package by loading it. When the free heap is short of what that needs (on the ESP8266,
-not on the ESP32 boards), the running theme is released first and loaded
-again afterwards, so only one theme is in RAM at a time. It then redraws once
-and its animations restart; its fetched values stay, and no data source is
-fetched before its interval is up. The manifest is read straight from the package and parsed one
-layer at a time, and no list in the engine needs one large block of memory;
-on the ESP8266 that is what makes this fit beside the web server.
+Установка, выбор и удаление темы, а также вывод в списке пакета, у которого ещё
+нет строки в индексе тем, проверяют пакет его загрузкой. Когда свободной кучи
+для этого не хватает (на ESP8266, не на платах ESP32), работающая тема сначала
+выгружается, а потом загружается снова, так что в ОЗУ одновременно только одна
+тема. После этого она один раз перерисовывается, её анимации перезапускаются;
+полученные значения остаются, и ни один источник данных не запрашивается раньше
+своего интервала. Манифест читается прямо из пакета и разбирается по одному слою
+за раз, и ни одному списку в движке не нужен один большой блок памяти; на
+ESP8266 именно это позволяет уместиться рядом с веб-сервером.
 
-The engine holds a bounded entry index and layer state in RAM. Compositing uses
-row buffers, not a 115,200-byte framebuffer. Static scenes produce no display
-writes after the first draw. Clock text is compared when wall time changes;
-animations invalidate only when their visible frame changes. Scrolling text
-schedules a write only when its visible integer pixel offset changes, and
-bindings are recomputed, and repainted, only when their fetched values actually
-change. Dirty areas are recomposited through all intersecting layers, restoring
-old glyphs, transparent sprite pixels, and foreground layers correctly, and a
-scrolling layer's glyphs stay clipped to its own viewport even under a wider
-dirty region from another layer.
+Движок держит в ОЗУ ограниченный индекс записей и состояние слоёв. Композиция
+использует буферы строк, а не кадровый буфер в 115 200 байт. Статические сцены
+после первой отрисовки ничего не пишут на экран. Текст часов сравнивается, когда
+меняется время; анимации помечают область только при смене видимого кадра.
+Прокручиваемый текст планирует запись, только когда меняется его видимое целое
+смещение, а привязки пересчитываются и перерисовываются, только когда их
+полученные значения действительно меняются. Изменившиеся области заново
+собираются через все пересекающиеся слои, корректно восстанавливая старые глифы,
+прозрачные пиксели спрайтов и передние слои, а глифы прокручиваемого слоя
+остаются обрезанными по его окну даже под более широкой областью перерисовки от
+другого слоя.
 
-10–15 FPS and clock updates under 100 ms remain hardware performance targets.
-The automated tests exercise composition and scheduling; they do not measure
-LittleFS/SPI latency on an actual SmallTV Pro.
+10–15 кадров в секунду и обновление часов быстрее 100 мс остаются целевыми
+показателями для железа. Автоматические тесты проверяют композицию и
+планирование; задержки LittleFS и SPI на настоящем SmallTV Pro они не измеряют.
 
-## Device package format
+## Формат пакета на устройстве
 
-`.stheme` V1 is a small uncompressed binary container, **not a ZIP file**. All
-integers are unsigned little endian. No extracted paths become filesystem paths.
+`.stheme` V1 — небольшой несжатый двоичный контейнер, **не ZIP-файл**. Все целые
+— беззнаковые, little endian. Никакие извлечённые пути не становятся путями
+файловой системы.
 
-| Container field | Encoding |
+| Поле контейнера | Кодирование |
 | --- | --- |
-| Magic | Four ASCII bytes `STH1` |
-| Entry count | `uint16`, 1–256 |
-| Reserved | `uint16`, zero |
-| Each entry | `uint16` path byte count, `uint32` payload byte count, path bytes, payload |
+| Сигнатура | четыре байта ASCII `STH1` |
+| Число записей | `uint16`, 1–256 |
+| Резерв | `uint16`, ноль |
+| Каждая запись | `uint16` — длина пути в байтах, `uint32` — длина данных в байтах, байты пути, данные |
 
-Paths are relative ASCII letters/digits plus `/`, `.`, `_`, `-`, at most 120 bytes.
-Empty components, `.` and `..`, absolute paths, backslashes, and duplicates are
-rejected. There must be one `theme.json`. Other entries must be `.sti` images,
-or in a spec 2 theme `fonts/<name>.stf` fonts.
-No padding, trailing bytes, executable entries, or external asset references are
-accepted. JSON data-source URLs remain allowed through the manifest's `data` block.
+Пути — относительные, из букв и цифр ASCII и символов `/`, `.`, `_`, `-`, не
+длиннее 120 байт. Пустые компоненты, `.` и `..`, абсолютные пути, обратные косые
+черты и дубликаты отвергаются. Должен быть ровно один `theme.json`. Остальные
+записи должны быть изображениями `.sti` либо, в теме spec 2, шрифтами
+`fonts/<name>.stf`. Выравнивание, хвостовые байты, исполняемые записи и ссылки
+на внешние ресурсы не принимаются. URL источников данных JSON по-прежнему
+разрешены через блок `data` манифеста.
 
-The asset resolver appends `.sti` to an image's logical `source`, or resolves
-`<animation source>/<zero-padded three-digit frame>.png.sti`. For example,
-`images/background.png` maps to `images/background.png.sti` inside the package.
+Поиск ресурса добавляет `.sti` к логическому `source` изображения либо строит
+путь `<source анимации>/<трёхзначный номер кадра с нулями>.png.sti`. Например,
+`images/background.png` соответствует `images/background.png.sti` внутри пакета.
 
-| STI field | Encoding |
+| Поле STI | Кодирование |
 | --- | --- |
-| Magic | Four ASCII bytes `STI1` |
-| Width, height | Two `uint16`, each 1–240 |
-| Alpha flag | `uint8`: 0 for opaque, 1 for alpha |
-| Reserved | Three zero bytes |
-| Pixels | Row-major RGB565 `uint16`, followed by alpha `uint8` if flag=1 |
+| Сигнатура | четыре байта ASCII `STI1` |
+| Ширина, высота | два `uint16`, каждое 1–240 |
+| Флаг альфа-канала | `uint8`: 0 — непрозрачное, 1 — с альфа-каналом |
+| Резерв | три нулевых байта |
+| Пиксели | RGB565 `uint16` по строкам, затем альфа `uint8`, если флаг равен 1 |
 
-Alpha 0 is transparent, 255 opaque. Intermediate values blend RGB565 channels
-with rounding. Opaque files use two bytes/pixel, transparent files three. The
-payload length must match the dimensions exactly.
+Альфа 0 — прозрачно, 255 — непрозрачно. Промежуточные значения смешивают каналы
+RGB565 с округлением. Непрозрачные файлы занимают два байта на пиксель,
+прозрачные — три. Длина данных должна точно соответствовать размерам.
 
-A theme with `"spec": 2` may also contain STI2 images, which store each row as
-runs. The packer writes whichever is smallest per image: STI1, STI2 with
-RGB565 colours, or STI2 with a palette of up to 16 colours. A spec 1 package
-with an STI2 image is rejected, with the image named.
+Тема с `"spec": 2` может содержать и изображения STI2, где каждая строка хранится
+сериями. Упаковщик записывает для каждого изображения самый компактный вариант:
+STI1, STI2 с цветами RGB565 или STI2 с палитрой до 16 цветов. Пакет spec 1 с
+изображением STI2 отвергается с указанием изображения.
 
-| STI2 field | Encoding |
+| Поле STI2 | Кодирование |
 | --- | --- |
-| Magic | Four ASCII bytes `STI2` |
-| Width, height | Two `uint16`, each 1–240 |
-| Alpha flag | `uint8`: 0 for opaque, 1 for alpha |
-| Palette size `P` | `uint8`: 0 for RGB565 colours, 1–16 for a palette |
-| Reserved | Two zero bytes |
-| Palette | `P` colours: RGB565 `uint16`, followed by alpha `uint8` if flag=1 |
-| Row table | One `uint32` per row: where the row starts, counted from the end of the table |
-| Rows | Each row as runs |
+| Сигнатура | четыре байта ASCII `STI2` |
+| Ширина, высота | два `uint16`, каждое 1–240 |
+| Флаг альфа-канала | `uint8`: 0 — непрозрачное, 1 — с альфа-каналом |
+| Размер палитры `P` | `uint8`: 0 — цвета RGB565, 1–16 — палитра |
+| Резерв | два нулевых байта |
+| Палитра | `P` цветов: RGB565 `uint16`, затем альфа `uint8`, если флаг равен 1 |
+| Таблица строк | по одному `uint32` на строку: где начинается строка, считая от конца таблицы |
+| Строки | каждая строка в виде серий |
 
-Offsets never go backwards; rows with equal offsets share their data. A row
-ends at the next larger offset, or at the end of the image. A run starts with
-one byte: its kind in the top two bits, its length minus one (1–64 pixels) in
-the low six:
+Смещения никогда не идут назад; строки с одинаковыми смещениями делят одни
+данные. Строка заканчивается на следующем большем смещении либо в конце
+изображения. Серия начинается с одного байта: тип в двух старших битах, длина
+минус один (1–64 пикселя) — в шести младших:
 
-| Kind | Run |
+| Тип | Серия |
 | --- | --- |
-| `00` | Transparent pixels, no payload; only in an image with alpha |
-| `01` | One colour repeated: RGB565 (+ alpha), or with a palette one index byte |
-| `10` | That many colours: RGB565 (+ alpha) each, or with a palette two 4-bit indices per byte, high nibble first; the unused low nibble of an odd run is 0 |
-| `11` | Reserved; the image is rejected |
+| `00` | прозрачные пиксели, без данных; только в изображении с альфа-каналом |
+| `01` | один повторяющийся цвет: RGB565 (+ альфа) либо, с палитрой, один байт индекса |
+| `10` | столько цветов: каждый RGB565 (+ альфа) либо, с палитрой, два 4-битных индекса на байт, старший полубайт первым; неиспользованный младший полубайт нечётной серии равен 0 |
+| `11` | зарезервировано; изображение отвергается |
 
-The device checks every row when the package is installed or loaded: the runs
-of a row must cover its width exactly without reading past the row's end, and
-every index must be below `P`. The shared test files in `tests/theme/sti/`
-show every form with the pixels it must decode to.
+Устройство проверяет каждую строку при установке или загрузке пакета: серии
+строки должны точно покрывать её ширину, не выходя за конец строки, и каждый
+индекс должен быть меньше `P`. Общие тестовые файлы в `tests/theme/sti/`
+показывают каждую форму вместе с пикселями, в которые она должна декодироваться.
 
-A spec 2 theme may contain STF fonts, `fonts/<name>.stf`, which a text layer
-names with `font`. A font holds one 8-byte record for every code point from
-the first to the last it covers, so a glyph is found without a search, then
-the glyph bitmaps:
+Тема spec 2 может содержать шрифты STF, `fonts/<name>.stf`, которые текстовый
+слой называет полем `font`. Шрифт хранит по одной 8-байтной записи на каждую
+кодовую точку от первой до последней из покрываемых, так что глиф находится без
+поиска, а затем растры глифов:
 
-| STF field | Encoding |
+| Поле STF | Кодирование |
 | --- | --- |
-| Magic | Four ASCII bytes `STF1` |
-| Line height | `uint8`, 6–96 pixels: the height of a text layer in this font |
-| Baseline | `uint8`, 1 to the line height: the rows above the baseline. Checked, not yet used to draw |
-| First code point | `uint8`, 32–126 |
-| Glyph count | `uint8`, 1–95; the last code point is at most 126 |
-| Fallback | `uint8`: a code point with a glyph, drawn for any byte without one |
-| Reserved | Three zero bytes |
-| Glyph records | One per code point: see below |
-| Bitmaps | Each glyph's bitmap, in record order |
+| Сигнатура | четыре байта ASCII `STF1` |
+| Высота строки | `uint8`, 6–96 пикселей: высота текстового слоя с этим шрифтом |
+| Базовая линия | `uint8`, от 1 до высоты строки: число строк над базовой линией. Проверяется, при рисовании пока не используется |
+| Первая кодовая точка | `uint8`, 32–126 |
+| Число глифов | `uint8`, 1–95; последняя кодовая точка — не больше 126 |
+| Запасной глиф | `uint8`: кодовая точка с глифом, рисуется вместо любого байта без глифа |
+| Резерв | три нулевых байта |
+| Записи глифов | по одной на кодовую точку, см. ниже |
+| Растры | растр каждого глифа в порядке записей |
 
-| Glyph record field | Encoding |
+| Поле записи глифа | Кодирование |
 | --- | --- |
-| Bitmap offset | `uint16`, from the start of the bitmaps |
-| Advance | `uint8`, 1–120 pixels to the next glyph; 0 when the font has no glyph for this code point |
-| Left, top | Two `uint8`: where the ink starts, in the glyph's advance and in the line |
-| Width, height | Two `uint8`: the ink's size; left + width ≤ advance, top + height ≤ line height |
-| Reserved | One zero byte |
+| Смещение растра | `uint16`, от начала растров |
+| Шаг | `uint8`, 1–120 пикселей до следующего глифа; 0, когда в шрифте нет глифа для этой кодовой точки |
+| Слева, сверху | два `uint8`: где начинается рисунок, в пределах шага глифа и в строке |
+| Ширина, высота | два `uint8`: размер рисунка; слева + ширина ≤ шаг, сверху + высота ≤ высота строки |
+| Резерв | один нулевой байт |
 
-A code point without a glyph has all eight bytes zero. A glyph without ink
-(a space) has an advance and zero offset, position and size. A bitmap is
-4-bit coverage, 0 for none and 15 for full, two pixels per byte with the left
-one in the high nibble; each row starts on a whole byte, and an odd width
-leaves the low nibble of the row's last byte 0. The bitmaps follow each other
-with nothing in between or after, so each offset is the sum of the bitmaps
-before it, at most 65,535 bytes in all.
+У кодовой точки без глифа все восемь байт нулевые. У глифа без рисунка (пробел)
+есть шаг, а смещение, положение и размер нулевые. Растр — 4-битное покрытие, 0 —
+нет, 15 — полное, два пикселя на байт, левый в старшем полубайте; каждая строка
+начинается с целого байта, а при нечётной ширине младший полубайт последнего
+байта строки равен 0. Растры идут друг за другом, без промежутков и без данных
+после них, так что каждое смещение — сумма растров перед ним, всего не больше
+65 535 байт.
 
-The device checks every record and every bitmap row when the package is
-installed or loaded, so drawing can trust them. Coverage blends the layer's
-colour over the pixels below it: `c × 17` is the alpha of the RGB565 blend
-used for images. Compared with 2-bit coverage, 4 bits make the bitmaps about
-1.8 times larger (Bebas Neue at 72 pixels per em, digits and `:`: 6,760
-against 3,607 bytes) but give 16 levels of antialiasing instead of 4.
+Устройство проверяет каждую запись и каждую строку растра при установке или
+загрузке пакета, так что при рисовании им можно доверять. Покрытие смешивает
+цвет слоя с пикселями под ним: `c × 17` — альфа для того же смешивания RGB565,
+что и у изображений. По сравнению с 2-битным покрытием 4 бита делают растры
+примерно в 1,8 раза больше (Bebas Neue при 72 пикселях на em, цифры и `:`: 6 760
+против 3 607 байт), но дают 16 уровней сглаживания вместо 4.
 
 ## HTTP API
 
-All routes use the device's existing optional digest authentication, including
-upload callbacks. Responses are JSON; failures contain `error`.
+Все маршруты используют необязательную digest-аутентификацию устройства, включая
+обработчики загрузки. Ответы — JSON; при ошибке в них есть `error`.
 
-| Method and route | Request / result |
+| Метод и маршрут | Запрос / результат |
 | --- | --- |
-| `GET /api/themes` | All installed packages with `valid`, `error`, filename-derived `id`, metadata, bytes; selected ID, free bytes, renderer error |
-| `POST /api/themes/install` | One multipart file; returns `201` and `{ "id": "..." }` |
-| `POST /api/themes/select` | JSON `{ "id": "..." }`; validates, saves, activates, starts NTP |
-| `POST /api/themes/delete` | JSON `{ "id": "..." }`; rejects deletion of a valid active theme; permits removal of a corrupt selected package |
+| `GET /api/themes` | все установленные пакеты с `valid`, `error`, `id` из имени файла, метаданными и размером; выбранный идентификатор, свободное место, ошибка рендерера |
+| `POST /api/themes/install` | один файл в multipart; возвращает `201` и `{ "id": "..." }` |
+| `POST /api/themes/select` | JSON `{ "id": "..." }`; проверяет, сохраняет, активирует, запускает NTP |
+| `POST /api/themes/delete` | JSON `{ "id": "..." }`; отказывает в удалении корректной активной темы; разрешает удалить повреждённый выбранный пакет |
 
-Invalid uploads return 400; duplicate IDs and valid active-theme deletion return 409; missing
-themes return 404. The normal settings JSON also exposes `mode: "theme"` and
-`themeId`. Prefer the selection endpoint because it validates the installed file
-before saving. An unavailable selected package displays an error while the web UI
-remains available for recovery.
+Некорректная загрузка возвращает 400; повтор идентификатора и удаление корректной
+активной темы — 409; отсутствующая тема — 404. Обычный JSON настроек тоже
+содержит `mode: "theme"` и `themeId`. Лучше пользоваться маршрутом выбора,
+потому что он проверяет установленный файл перед сохранением. Если выбранный
+пакет недоступен, на экране показывается ошибка, а веб-интерфейс остаётся
+доступным для восстановления.
 
-## Development checks
+## Проверки при разработке
 
-After resolving PlatformIO's dependencies:
+После того как PlatformIO скачал зависимости (достаточно один раз собрать
+прошивку через `./build.sh`):
 
 ```bash
 sh tests/theme/run.sh
 python3 -m unittest discover -s tests/theme -p 'test_*.py'
 node tests/theme/test_webui.js
-pio run -e smalltv -e smalltv_c2 -e smalltv_esp32 -e smalltv_esp32_wg -e smalltv_esp32_8mb -e smalltv_lean
+./build.sh
 ```
 
-The native suite uses the same C++ parser, scheduler, package reader, and compositor
-as the firmware. It also loads the example package, renders its frames over five
-minutes of simulated time, and writes `/tmp/smalltv-theme-preview.ppm`.
+Нативный набор тестов использует те же парсер, планировщик, чтение пакетов и
+композитор на C++, что и прошивка. Он также загружает пакет-пример, отрисовывает
+его кадры за пять минут модельного времени и пишет
+`/tmp/smalltv-theme-preview.ppm`.
 
-An optional real-browser check exercises offline playback, pause, seek and replay
-in the checked-in example. It needs Node 22+ and Chrome/Chromium:
+Необязательная проверка в настоящем браузере прогоняет автономное
+воспроизведение, паузу, перемотку и повтор на примере из репозитория. Ей нужны
+Node 22+ и Chrome/Chromium:
 
 ```bash
 node tests/theme/test_preview_browser.mjs
-# Set CHROME=/path/to/chromium when the browser is not named google-chrome.
+# Задайте CHROME=/path/to/chromium, если браузер называется не google-chrome.
 ```
