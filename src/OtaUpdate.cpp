@@ -85,10 +85,25 @@ OtaLatest otaCheckLatest(const Settings& s) {
         fa["browser_download_url"] = true;
 
         JsonDocument doc;
+#if defined(SMALLTV_FAMILY_ESP32)
+        // Read the whole reply first (about 6 KB, the ESP32 has the heap for
+        // it). Parsing straight off the TLS stream failed on every attempt on
+        // the SmallTV Pro, although the reply itself was complete.
+        String body = http.getString();
+        DeserializationError err =
+            deserializeJson(doc, body, DeserializationOption::Filter(filter));
+#else
         DeserializationError err =
             deserializeJson(doc, http.getStream(), DeserializationOption::Filter(filter));
+#endif
         if (err) {
-          r.error = F("parse failed"); retryable = true;      // truncated/stalled stream
+          // truncated/stalled stream
+          r.error = F("parse failed: ");
+          r.error += err.c_str();
+#if defined(SMALLTV_FAMILY_ESP32)
+          r.error += " (" + String(body.length()) + " bytes)";
+#endif
+          retryable = true;
         } else {
           r.tag = (const char*)(doc["tag_name"] | "");
           for (JsonObjectConst a : doc["assets"].as<JsonArrayConst>()) {
