@@ -202,7 +202,7 @@ static void drawStock(const StockData& d, uint8_t pageIndex, uint8_t pageCount,
   // No data yet for this symbol.
   if (!d.valid) {
     gfxDrawCentered(d.symbol[0] ? d.symbol : "----", 80, 3, C_WHITE);
-    gfxDrawCentered(d.error ? "fetch error" : "loading...", 120, 2, C_GRAY);
+    gfxDrawCentered(d.error ? TR("fetch error", "ошибка загрузки") : TR("loading...", "загрузка..."), 120, 2, C_GRAY);
     if (ts.showPageDots) {
       int total = pageCount * 10 - 4;
       int x0 = (TFT_WIDTH - total) / 2;
@@ -384,7 +384,7 @@ static void drawPortfolio(uint8_t pageIndex, uint8_t pageCount, const Settings& 
     y += 20;
   }
 
-  gfxDrawCentered("Portfolio", y, 3, C_WHITE);
+  gfxDrawCentered(TR("Portfolio", "Портфель"), y, 3, C_WHITE);
   y += 32;
 
   uint16_t upC   = ts.colorInverted ? C_RED : C_GREEN;
@@ -448,7 +448,7 @@ static void drawPortfolio(uint8_t pageIndex, uint8_t pageCount, const Settings& 
     gfx->setTextSize(2);
     gfx->setTextColor(C_WHITE);
     gfx->setCursor(4, y);
-    gfx->print("Total");
+    gfx->print(TR("Total", "Итого"));
     gfx->setCursor(TFT_WIDTH - gfxTextW(line, 2) - 4, y);
     gfx->print(line);
     if (totC[k] > 0) {
@@ -493,7 +493,7 @@ void TickerMode::render(const Settings& s) {
   const TickerSettings& ts = (setIdx_ == 1) ? s.ticker2 : s.ticker;
   uint8_t n = stocksCount(setIdx_);
   if (n == 0) {
-    const char* noMsg = (setIdx_ == 1) ? "No tickers (2)" : "No tickers (1)";
+    const char* noMsg = (setIdx_ == 1) ? TR("No tickers (2)", "Нет тикеров 2") : TR("No tickers (1)", "Нет тикеров 1");
     gfxMessage(noMsg, netIP().c_str(), C_YELLOW);
     return;
   }
@@ -502,7 +502,7 @@ void TickerMode::render(const Settings& s) {
   for (uint8_t i = 0; i < n; i++)
     if (stockAt(i, setIdx_).source != SRC_WEBHOOK) { allWebhook = false; break; }
   if (allWebhook && ts.webhookUrl.length() < 8) {
-    gfxMessage("Set webhook", netIP().c_str(), C_YELLOW);
+    gfxMessage(TR("Set webhook", "Нужен webhook"), netIP().c_str(), C_YELLOW);
     return;
   }
 

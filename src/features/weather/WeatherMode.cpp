@@ -37,13 +37,13 @@ void WeatherMode::render(const Settings& s) {
 
   const WeatherData& d = weatherGet();
   if (!d.valid) {
-    gfxDrawCentered("Weather", 80, 3, C_WHITE);
-    gfxDrawCentered(d.error ? "fetch error" : "loading...", 120, 2, C_GRAY);
+    gfxDrawCentered(TR("Weather", "Погода"), 80, 3, C_WHITE);
+    gfxDrawCentered(d.error ? TR("fetch error", "ошибка загрузки") : TR("loading...", "загрузка..."), 120, 2, C_GRAY);
     return;
   }
 
   // Header: Location / Title
-  gfxDrawCentered("Seoul Weather", 8, 2, C_YELLOW);
+  gfxDrawCentered(TR("Weather", "Погода"), 8, 2, C_YELLOW);
 
   // Time / Date if available
   time_t now = time(nullptr);
@@ -57,7 +57,7 @@ void WeatherMode::render(const Settings& s) {
 
   // Big Current Temp: e.g. "12.8 C"
   char tempStr[20];
-  snprintf(tempStr, sizeof(tempStr), "%.1f C", d.temp);
+  snprintf(tempStr, sizeof(tempStr), "%.1f\xF8""C", d.temp);   // 0xF8 is the degree sign of the font
   gfxDrawCentered(tempStr, 58, 5, C_WHITE);
 
   // Weather Condition: e.g. "Partly Cloudy"
@@ -69,18 +69,18 @@ void WeatherMode::render(const Settings& s) {
 
   // Details
   // Min / Max
-  char minMaxStr[32];
-  snprintf(minMaxStr, sizeof(minMaxStr), "Min %.1f C  Max %.1f C", d.tempMin, d.tempMax);
+  char minMaxStr[48];
+  snprintf(minMaxStr, sizeof(minMaxStr), TR("Min %.1f\xF8  Max %.1f\xF8", "Мин %.1f\xF8  Макс %.1f\xF8"), d.tempMin, d.tempMax);
   gfxDrawCentered(minMaxStr, 150, 2, C_WHITE);
 
   // Humidity
-  char humStr[24];
-  snprintf(humStr, sizeof(humStr), "Humidity: %d%%", d.humidity);
+  char humStr[40];
+  snprintf(humStr, sizeof(humStr), TR("Humidity: %d%%", "Влажность: %d%%"), d.humidity);
   gfxDrawCentered(humStr, 178, 2, C_BLUE);
 
   // Wind Speed
-  char windStr[24];
-  snprintf(windStr, sizeof(windStr), "Wind: %.1f km/h", d.windSpeed);
+  char windStr[40];
+  snprintf(windStr, sizeof(windStr), TR("Wind: %.1f km/h", "Ветер: %.1f км/ч"), d.windSpeed);
   gfxDrawCentered(windStr, 204, 2, C_GRAY);
 
   if (d.error) gfx->fillCircle(6, 6, 3, C_RED);

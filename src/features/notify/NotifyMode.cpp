@@ -5,6 +5,7 @@
 #include "Gfx.h"
 #include "NotifyAnims.h"
 #include "NotifyTypes.h"
+#include "../theme/Text866.h"
 
 NotifyMode g_notifyMode;
 
@@ -164,10 +165,18 @@ void NotifyMode::draw(bool full) {
 
 // ---- queue ----------------------------------------------------------------
 
+// UTF-8 in, one byte per character out: ASCII and Russian letters (CP866, see
+// Text866.h), which is what the font draws and what the scroll arithmetic
+// counts. Anything else, an emoji for one, is dropped.
 void NotifyMode::copyText(char* dst, size_t cap, const char* src) {
   size_t n = 0;
-  for (; src && *src && n + 1 < cap; src++) {
-    if (*src >= 0x20 && *src <= 0x7E) dst[n++] = *src;
+  if (src) {
+    // Room for the longest text that can still fill `dst`: four bytes a character.
+    char buf[4 * (NOTIFY_LABEL_MAX > NOTIFY_TITLE_MAX ? NOTIFY_LABEL_MAX : NOTIFY_TITLE_MAX) + 4];
+    size_t len = smalltv::utf8ToCp866(src, strnlen(src, sizeof(buf)), buf, 0);
+    for (size_t i = 0; i < len && n + 1 < cap; i++) {
+      if (smalltv::isText866(uint8_t(buf[i]))) dst[n++] = buf[i];
+    }
   }
   dst[n] = '\0';
 }

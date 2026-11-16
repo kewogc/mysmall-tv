@@ -1,6 +1,8 @@
 #include "Gfx.h"
 #include "Platform.h"
 #include "SunTimes.h"
+#include "features/theme/FontCyr866.h"
+#include "features/theme/Text866.h"
 #include <Arduino_GFX_Library.h>
 #include <SPI.h>
 
@@ -44,7 +46,60 @@ class Arduino_ST7789_SmallTV : public Arduino_ST7789 {
     _bus->writeC8D8(ST7789_MADCTL, madctl);
     _bus->endWrite();
   }
+
+  // Russian text. The library's built-in font has no Cyrillic, so the two
+  // overrides below add it for everything printed through this device.
+  //
+  // write() takes UTF-8 Russian letters as they stand in string literals: a
+  // lead byte 0xD0/0xD1 is held until its continuation byte arrives, and the
+  // pair goes on as one CP866 byte. Text already in CP866 (Text866.h) passes
+  // through, because no Russian letter is 0xD0 or 0xD1 there.
+  size_t write(uint8_t c) override {
+    if (utf8Lead_) {
+      const uint8_t lead = utf8Lead_;
+      utf8Lead_ = 0;
+      if ((c & 0xC0) == 0x80) {
+        const uint8_t b = smalltv::cp866FromCodepoint((uint32_t(lead & 0x1F) << 6) | (c & 0x3F));
+        return Arduino_ST7789::write(b ? b : uint8_t('?'));
+      }
+      Arduino_ST7789::write(lead);   // not a pair after all: print it as it was
+    }
+    if (c == 0xD0 || c == 0xD1) {
+      utf8Lead_ = c;
+      return 1;
+    }
+    return Arduino_ST7789::write(c);
+  }
+
+  // drawChar() draws a CP866 Russian letter from our table, in the cell and
+  // with the scaling of the built-in font; any other character is the library's.
+  void drawChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t bg) override {
+    const int k = smalltv::cyr866Index(c);
+    if (k < 0) {
+      Arduino_ST7789::drawChar(x, y, c, color, bg);
+      return;
+    }
+    const int16_t sx = textsize_x, sy = textsize_y;
+    startWrite();
+    for (int8_t i = 0; i < GFX_FONT_W; ++i) {
+      uint8_t line = i < 5 ? smalltv::kFontCyr866[k * 5 + i] : 0;   // sixth column is the gap
+      for (int8_t j = 0; j < GFX_FONT_H; ++j, line >>= 1) {
+        if (line & 1) writeFillRect(x + i * sx, y + j * sy, sx, sy, color);
+        else if (bg != color) writeFillRect(x + i * sx, y + j * sy, sx, sy, bg);
+      }
+    }
+    endWrite();
+  }
+
+ private:
+  uint8_t utf8Lead_ = 0;
 };
+
+// ---- language --------------------------------------------------------------
+static bool g_langRu = false;
+
+void gfxSetLang(const char* code) { g_langRu = code && !strcmp(code, "ru"); }
+bool gfxLangRu() { return g_langRu; }
 
 // ---- colour correction ----------------------------------------------------
 // Per-channel gain in percent, 100 = untouched. Kept as plain bytes so the
@@ -78,6 +133,7 @@ void gfxBegin(const Settings& s) {
   // this far (early crash / bad flash) — a useful boot indicator.
   pinMode(TFT_BL, OUTPUT);
   platformAnalogWriteInit(TFT_BL);
+  gfxSetLang(s.clock.lang.c_str());
   gfxSetBrightness(s.brightness, s.backlightInverted);
 
 #if defined(SMALLTV_FAMILY_ESP32)
@@ -135,7 +191,8 @@ void gfxApplyColors(const Settings& s) {
 }
 
 // ---- text helpers (built-in 6x8 font, integer scaled) ---------------------
-int gfxTextW(const char* s, uint8_t size) { return (int)strlen(s) * GFX_FONT_W * size; }
+// Cells, not bytes: a Russian letter in a UTF-8 literal is two bytes, one cell.
+int gfxTextW(const char* s, uint8_t size) { return (int)smalltv::textCells866(s) * GFX_FONT_W * size; }
 
 void gfxDrawCentered(const char* s, int y, uint8_t size, uint16_t color) {
   if (!gfx) return;
@@ -166,17 +223,17 @@ void gfxBoot(const char* line1, const char* line2) {
 void gfxApInfo(const char* ssid, const char* pass, const char* ip, const char* why) {
   if (!gfx) return;
   gfx->fillScreen(C_BLACK);
-  gfxDrawCentered("SETUP MODE", 18, 3, C_YELLOW);
+  gfxDrawCentered(TR("SETUP MODE", "НАСТРОЙКА"), 18, 3, C_YELLOW);
   if (why && why[0]) gfxDrawCentered(why, 44, gfxFitSize(why, 232, 2), C_RED);
-  gfxDrawCentered("Join WiFi:", 64, 2, C_GRAY);
+  gfxDrawCentered(TR("Join WiFi:", "Сеть Wi-Fi:"), 64, 2, C_GRAY);
   gfxDrawCentered(ssid, 88, gfxFitSize(ssid, 232, 3), C_WHITE);
   if (pass && pass[0]) {
-    gfxDrawCentered("Password:", 124, 2, C_GRAY);
+    gfxDrawCentered(TR("Password:", "Пароль:"), 124, 2, C_GRAY);
     gfxDrawCentered(pass, 146, gfxFitSize(pass, 232, 2), C_WHITE);
   } else {
-    gfxDrawCentered("(open network)", 124, 2, C_GRAY);
+    gfxDrawCentered(TR("(open network)", "(без пароля)"), 124, 2, C_GRAY);
   }
-  gfxDrawCentered("Then open:", 182, 2, C_GRAY);
+  gfxDrawCentered(TR("Then open:", "Затем откройте:"), 182, 2, C_GRAY);
   String url = String("http://") + ip;
   gfxDrawCentered(url.c_str(), 206, gfxFitSize(url.c_str(), 232, 2), C_GREEN);
 }
@@ -184,10 +241,10 @@ void gfxApInfo(const char* ssid, const char* pass, const char* ip, const char* w
 void gfxStaInfo(const char* ssid, const char* ip, const char* host) {
   if (!gfx) return;
   gfx->fillScreen(C_BLACK);
-  gfxDrawCentered("CONNECTED", 18, 3, C_GREEN);
-  gfxDrawCentered("Network:", 62, 2, C_GRAY);
+  gfxDrawCentered(TR("CONNECTED", "ПОДКЛЮЧЕНО"), 18, 3, C_GREEN);
+  gfxDrawCentered(TR("Network:", "Сеть:"), 62, 2, C_GRAY);
   gfxDrawCentered(ssid && ssid[0] ? ssid : "-", 84, gfxFitSize(ssid, 232, 3), C_WHITE);
-  gfxDrawCentered("Open in browser:", 126, 2, C_GRAY);
+  gfxDrawCentered(TR("Open in browser:", "В браузере:"), 126, 2, C_GRAY);
   // IP shown big (always fits at size 2); mDNS name below as a friendlier option.
   gfxDrawCentered(ip && ip[0] ? ip : "-", 150, gfxFitSize(ip, 232, 3), C_GREEN);
   if (host && host[0]) {
@@ -208,11 +265,11 @@ void gfxMessage(const char* title, const char* msg, uint16_t titleColor) {
 void gfxCrash(const char* epc, const char* addr, const char* ip) {
   if (!gfx) return;
   gfx->fillScreen(C_BLACK);
-  gfxDrawCentered("CRASH", 12, 4, C_RED);
+  gfxDrawCentered(TR("CRASH", "СБОЙ"), 12, 4, C_RED);
   gfxDrawCentered("epc", 60, 2, C_GRAY);
   gfxDrawCentered(epc && epc[0] ? epc : "-", 80, 3, C_WHITE);
   gfxDrawCentered("addr", 124, 2, C_GRAY);
   gfxDrawCentered(addr && addr[0] ? addr : "-", 146, 2, C_WHITE);
-  gfxDrawCentered("OTA flash to fix:", 182, 2, C_GRAY);
+  gfxDrawCentered(TR("OTA flash to fix:", "Прошейте по Wi-Fi:"), 182, 2, C_GRAY);
   gfxDrawCentered(ip && ip[0] ? ip : "-", 204, 2, C_GREEN);
 }

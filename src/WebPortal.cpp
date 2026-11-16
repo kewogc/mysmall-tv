@@ -351,6 +351,7 @@ static void handlePostConfig() {
   clockReapply(*S);         // re-arm SNTP iff the timezone changed
   appApplyBrightness();     // apply effective brightness (respects night/auto/manual)
   gfxApplyColors(*S);       // rotation, panel colour order/inversion, channel gain
+  gfxSetLang(S->clock.lang.c_str());   // language of the on-screen text
   appInvalidate();          // re-init every mode + repaint (covers mode/URL/symbol changes)
 
   // Rebuild the tunnel when its settings changed. A save that changes nothing

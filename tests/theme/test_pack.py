@@ -47,9 +47,9 @@ class PackTests(unittest.TestCase):
             manifest = {'spec': 2, 'theme': {'id': 'test', 'name': 'Test', 'author': 'Me', 'version': '1'},
                         'display': {'width': 240, 'height': 240, 'background': '#000000'},
                         'layers': [{'id': 'day', 'type': 'text', 'x': 0, 'y': 0, 'size': 16, 'color': '#ffffff',
-                                    'value': {'en': '{WEEKDAY}', 'pt': 'Hoje: {WEEKDAY}'}}]}
+                                    'value': {'en': '{WEEKDAY}', 'ru': 'Segodnya: {WEEKDAY}'}}]}
             (root/'theme.json').write_text(json.dumps(manifest))
-            self.assertIn(b'Hoje: {WEEKDAY}', pack.build(root))
+            self.assertIn(b'Segodnya: {WEEKDAY}', pack.build(root))
             manifest['layers'][0]['value'] = {'pt': 'so portugues'}   # no English to fall back to
             (root/'theme.json').write_text(json.dumps(manifest))
             with self.assertRaises(ValueError):

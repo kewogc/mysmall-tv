@@ -129,8 +129,8 @@ class PackageParityTests(unittest.TestCase):
             ('live-status', '2026-11-06T10:09:55', 15, 30,
              {'status.label': 'Build pipeline is green again', 'status.level': '73', 'status.state': 'OK'}, None),
             ('analog', '2026-11-06T10:09:55', 10, 20, {'device.temperature': '21.5'}, None),
-            ('analog', '2026-11-06T15:42:07', 15, 30, {'device.temperature': '-4'}, 'de'),   # PM hour hand
-            ('analog', '2026-03-29T11:59:59', 1, 4, None, 'pt'),   # AM/PM hand hand-over
+            ('analog', '2026-11-06T15:42:07', 15, 30, {'device.temperature': '-4'}, 'ru'),   # PM hour hand, Russian text
+            ('analog', '2026-03-29T11:59:59', 1, 4, None, 'ru'),   # AM/PM hand hand-over
         ]
         for name, start, fps, count, values, lang in runs:
             with self.subTest(theme=name, start=start, fps=fps, lang=lang):
@@ -184,12 +184,17 @@ MANIFESTS = {
     'bad time name': manifest(layers=[dict(shape(shape='hand', length=50), angle=0,
                                            bind={'angle': dict(SECOND, source='time.millis')})]),
     'spec1 time bind': manifest(spec=1, layers=[dict(TEXT, bind={'x': {'source': 'time.second', 'input': [0, 60], 'output': [0, 100]}})]),
-    'lang ok': layer(value={'en': 'a', 'de': 'b'}),
-    'lang no en': layer(value={'de': 'b'}),
+    'lang ok': layer(value={'en': 'a', 'ru': 'b'}),
+    'lang russian': layer(value={'en': 'Today', 'ru': 'Сегодня {WD}, 5°'}),
+    'lang russian plain': layer(value='Привет'),
+    'lang russian spec1': manifest(spec=1, layers=[dict(TEXT, value='Привет')]),
+    'lang not in font': layer(value='café'),
+    'lang russian too long': layer(value='ж' * 65),
+    'lang no en': layer(value={'ru': 'b'}),
     'lang bad key': layer(value={'en': 'a', 'nl': 'b'}),
     'lang spec1': manifest(spec=1, layers=[dict(TEXT, value={'en': 'a'})]),
-    'lang budget': manifest(layers=[dict(TEXT, id=f'l{i}', value={'en': 'a', **{k: 'x'*100 for k in ('pt', 'es', 'fr', 'de', 'it')}})
-                                    for i in range(2)]),
+    'lang budget': manifest(layers=[dict(TEXT, id=f'l{i}', value={'en': 'a', 'ru': 'x'*100})
+                                    for i in range(8)]),
     'device token': layer(value='{device.humidity}'),
     'device bad': layer(value='{device.pressure}'),
     'data id time': manifest(data=[dict(SOURCE, id='time')]),
@@ -214,7 +219,7 @@ MANIFESTS = {
 @needs_native
 class ManifestParityTests(unittest.TestCase):
     def test_validators_agree(self):
-        self.assertEqual(len(MANIFESTS), 34)
+        self.assertEqual(len(MANIFESTS), 39)
         with tempfile.TemporaryDirectory() as d:
             path = Path(d)/'theme.json'
             for name, theme in MANIFESTS.items():

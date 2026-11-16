@@ -379,9 +379,9 @@ static void testListReply() {
   assert(longest.bytes > 16 * (48 + 2 * 96 + 2 * 32 + 96));
 }
 
-// A spec 2 theme with localized text: four text layers in five languages each
-// (30 characters a language; 16 translations of 28 bytes and a 31-byte string
-// each, 944 bytes in all). Parsing it must stay inside the load budget with no
+// A spec 2 theme with localized text: four text layers in English and Russian
+// (30 characters a language; 4 translations of 28 bytes and a 31-byte string
+// each). Parsing it must stay inside the load budget with no
 // large block, and a running one inside the running budget -- the
 // translations are small separate allocations in blocks, not one string that
 // doubles as it grows.
@@ -392,7 +392,7 @@ static std::string localizedManifest(int layers, int characters) {
   for (int i = 0; i < layers; ++i) {
     if (i) json += ",";
     json += "{\"id\":\"t" + std::to_string(i) + "\",\"type\":\"text\",\"x\":0,\"y\":" + std::to_string(i * 20) + ",\"size\":16,\"color\":\"#ffffff\","
-      "\"value\":{\"en\":\"" + text + " {WEEKDAY}\",\"pt\":\"" + text + "\",\"es\":\"" + text + "\",\"fr\":\"" + text + "\",\"de\":\"" + text + "\"}}";
+      "\"value\":{\"en\":\"" + text + " {WEEKDAY}\",\"ru\":\"" + text + "\"}}";
   }
   return json + "]}";
 }
@@ -408,19 +408,19 @@ static void testLocalizedTheme() {
     assert(ok);
   }
   const size_t loadPeak = peak, loadLargest = largest;
-  assert(theme.translations.size() == 16 && theme.translationBytes == 16 * (sizeof(LocalizedText) + 31));
+  assert(theme.translations.size() == 4 && theme.translationBytes == 4 * (sizeof(LocalizedText) + 31));
   live = peak = largest = 0;
   size_t running = 0;
   {
     Engine engine;
     engine.setTheme(std::move(theme), 0);
-    engine.setLanguage(4);
+    engine.setLanguage(1);
     tm time{};
     time.tm_year = 126; time.tm_mon = 9; time.tm_mday = 23; time.tm_wday = 5;
     engine.update(1000, &time);
     running = live;
   }
-  printf("localized theme (4 layers x 5 languages): load peak %zu B, largest block %zu B, running %zu B\n", loadPeak, loadLargest, running);
+  printf("localized theme (4 layers x 2 languages): load peak %zu B, largest block %zu B, running %zu B\n", loadPeak, loadLargest, running);
   counting = false;
   assert(loadPeak <= LoadPeakBudget && loadLargest <= LargestBlockBudget && running <= RunningBudget);
   // The most the translations may take in all, spread over 32 layers.
@@ -433,7 +433,7 @@ static void testLocalizedTheme() {
 // of text, under the old cap) held 4.5 KB. The list now reserves what the
 // manifest declares, and the cap counts the entries.
 static std::string shortManifest(int layers, int perLayer, const char* text) {
-  static const char* const codes[] = {"pt", "es", "fr", "de", "it"};
+  static const char* const codes[] = {"ru"};
   std::string json = "{\"spec\":2,\"theme\":{\"id\":\"loc\",\"name\":\"Loc\",\"author\":\"A\",\"version\":\"1\"},"
     "\"display\":{\"width\":240,\"height\":240,\"background\":\"#000000\"},\"layers\":[";
   for (int i = 0; i < layers; ++i) {
@@ -464,7 +464,7 @@ static size_t heldBy(const std::string& json) {
 }
 static void testShortTranslations() {
   struct Case { int layers, perLayer; };
-  for (Case c : {Case{1, 1}, Case{32, 1}, Case{7, 5}}) {
+  for (Case c : {Case{1, 1}, Case{7, 1}, Case{32, 1}}) {
     const size_t entries = size_t(c.layers) * c.perLayer;
     const size_t held = heldBy(shortManifest(c.layers, c.perLayer, "xy")) - heldBy(shortManifest(c.layers, 0, "xy"));
     // The entries, plus a little for the block headers and the list of blocks.
@@ -472,10 +472,12 @@ static void testShortTranslations() {
     printf("short translations (%d layers x %d): %zu entries hold %zu B (bound %zu B)\n", c.layers, c.perLayer, entries, held, bound);
     assert(held <= bound);
   }
-  // 160 entries of six characters were 960 bytes of text; they are 4.5 KB of RAM.
+  // The cap counts the entries and, past the inline buffer, the text: 32 short
+  // translations fit (896 bytes), 32 of sixteen characters do not (1440).
   Theme theme;
   std::string error;
-  assert(!parseTheme(shortManifest(32, 5, "abcdef"), theme, error) && error.find("1024") != std::string::npos);
+  assert(parseTheme(shortManifest(32, 1, "abcdef"), theme, error));
+  assert(!parseTheme(shortManifest(32, 1, "abcdefghijklmnop"), theme, error) && error.find("1024") != std::string::npos);
 }
 
 int main(int argc, char** argv) {

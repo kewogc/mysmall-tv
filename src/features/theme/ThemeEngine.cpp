@@ -1,4 +1,5 @@
 #include "ThemeEngine.h"
+#include "Text866.h"
 #ifdef ARDUINO
 #include "config.h"
 #endif
@@ -207,13 +208,17 @@ static bool validFieldToken(const std::string& token, const Theme& theme) {
   }
   return false;
 }
-// A text `value` template: printable ASCII only, with every {...} span either
-// a clock token or a declared data-field reference. A bare '}' outside a
-// {...} span is rejected so authors cannot accidentally leave one unmatched.
+// A text `value` template: printable ASCII, and in a spec 2 theme Russian
+// letters too (already one CP866 byte each, see toText866()), with every {...}
+// span either a clock token or a declared data-field reference. A bare '}'
+// outside a {...} span is rejected so authors cannot accidentally leave one
+// unmatched.
 static bool validText(const std::string& s, const Theme& theme) {
   if (s.size() > 128) return false;
   for (size_t i = 0; i < s.size(); ++i) {
-    if (s[i] < 32 || s[i] > 126 || s[i] == '}') return false;
+    const uint8_t c = static_cast<uint8_t>(s[i]);
+    const bool text = (c >= 32 && c <= 126) || (theme.spec >= 2 && isText866(c));
+    if (!text || s[i] == '}') return false;
     if (s[i] != '{') continue;
     size_t end = s.find('}', i);
     if (end == std::string::npos) return false;
@@ -1152,6 +1157,11 @@ static const char ticksKeys[] PROGMEM = "|id|type|shape|x|y|radius|count|length|
 static size_t translationCost(size_t length) {
   return sizeof(LocalizedText) + (length > std::string().capacity() ? length + 1 : 0);
 }
+// UTF-8, as a manifest holds it, to the engine's one byte per character. A
+// character the font cannot draw becomes 0x01, which validText() refuses.
+static void toText866(std::string& s) {
+  s.resize(utf8ToCp866(s.data(), s.size(), &s[0], '\x01'));
+}
 // A text layer's `value`: a string, or under spec 2 an object of strings by
 // language code. `en` is required, so there is always a text to fall back to;
 // every code must be a known one, at most once, and every string passes the
@@ -1160,17 +1170,19 @@ __attribute__((noinline)) static bool parseTextValue(JsonObjectConst o, Theme& t
   JsonObjectConst languages = o["value"].as<JsonObjectConst>();
   if (languages.isNull()) {
     if (!f.text("value", l.value, 128)) return false;
+    if (t.spec >= 2) toText866(l.value);
     return validText(l.value, t) || f.fail("value", "use printable ASCII and declared clock/data variables only");
   }
   if (t.spec < 2) return f.fail("value", "a text per language needs spec 2");
   bool english = false;
   for (JsonPairConst p : languages) {
     int index = languageIndex(p.key().c_str(), p.key().size());
-    if (index < 0) return f.fail("value", "unknown language " + printableKey(p.key().c_str(), p.key().size()) + ", expected en, pt, es, fr, de or it");
+    if (index < 0) return f.fail("value", "unknown language " + printableKey(p.key().c_str(), p.key().size()) + ", expected en or ru");
     if (!p.value().is<const char*>()) return f.fail("value", "each language needs a string");
     JsonString s = p.value().as<JsonString>();
     std::string text(s.c_str(), s.size());
     if (text.empty() || text.size() > 128) return f.fail("value", "each language expects 1 to 128 bytes");
+    toText866(text);
     if (!validText(text, t)) return f.fail("value", "use printable ASCII and declared clock/data variables only");
     if (index == 0) {
       english = true;
@@ -1308,39 +1320,29 @@ std::string expandText(const std::string& value, const tm* t) {
   static const std::vector<ThemeValue> empty;
   return expandText(value, t, empty);
 }
-// Month and weekday names, one fixed-width NUL-padded slot each, in flash
-// (PROGMEM on the ESP8266): the full names and, separately, the abbreviations,
-// so none is cut from the full name. ASCII only, because the built-in font is.
+// Month and weekday names, one fixed-width NUL-padded slot each, in flash:
+// the full names and, separately, the abbreviations, so none is cut from the
+// full name. English is ASCII. Russian is CP866, one byte per letter, which is
+// how the engine holds text (Text866.h); the names are written out in the
+// comments. Russian months are in the genitive, as in a date ("16 ноября").
 // Only the slot being expanded is copied out, into a small stack buffer.
 constexpr size_t MonthSlot = 11, DaySlot = 14, ShortSlot = 5;
 static const char monthNames[kLanguageCount][12][MonthSlot] PROGMEM = {
   {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"},
-  {"Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"},
-  {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"},
-  {"Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"},
-  {"Januar", "Februar", "Maerz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"},
-  {"Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"}};
+  // января, февраля, марта, апреля, мая, июня, июля, августа, сентября, октября, ноября, декабря
+  {"\xEF\xAD\xA2\xA0\xE0\xEF", "\xE4\xA5\xA2\xE0\xA0\xAB\xEF", "\xAC\xA0\xE0\xE2\xA0", "\xA0\xAF\xE0\xA5\xAB\xEF", "\xAC\xA0\xEF", "\xA8\xEE\xAD\xEF", "\xA8\xEE\xAB\xEF", "\xA0\xA2\xA3\xE3\xE1\xE2\xA0", "\xE1\xA5\xAD\xE2\xEF\xA1\xE0\xEF", "\xAE\xAA\xE2\xEF\xA1\xE0\xEF", "\xAD\xAE\xEF\xA1\xE0\xEF", "\xA4\xA5\xAA\xA0\xA1\xE0\xEF"}};
 static const char monthShort[kLanguageCount][12][ShortSlot] PROGMEM = {
   {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"},
-  {"Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"},
-  {"Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"},
-  {"Janv", "Fevr", "Mars", "Avr", "Mai", "Juin", "Juil", "Aout", "Sept", "Oct", "Nov", "Dec"},
-  {"Jan", "Feb", "Mar", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"},
-  {"Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"}};
+  // янв, фев, мар, апр, мая, июн, июл, авг, сен, окт, ноя, дек
+  {"\xEF\xAD\xA2", "\xE4\xA5\xA2", "\xAC\xA0\xE0", "\xA0\xAF\xE0", "\xAC\xA0\xEF", "\xA8\xEE\xAD", "\xA8\xEE\xAB", "\xA0\xA2\xA3", "\xE1\xA5\xAD", "\xAE\xAA\xE2", "\xAD\xAE\xEF", "\xA4\xA5\xAA"}};
 static const char dayNames[kLanguageCount][7][DaySlot] PROGMEM = {
   {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"},
-  {"Domingo", "Segunda-feira", "Terca-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sabado"},
-  {"Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"},
-  {"Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"},
-  {"Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"},
-  {"Domenica", "Lunedi", "Martedi", "Mercoledi", "Giovedi", "Venerdi", "Sabato"}};
+  // Воскресенье, Понедельник, Вторник, Среда, Четверг, Пятница, Суббота
+  {"\x82\xAE\xE1\xAA\xE0\xA5\xE1\xA5\xAD\xEC\xA5", "\x8F\xAE\xAD\xA5\xA4\xA5\xAB\xEC\xAD\xA8\xAA", "\x82\xE2\xAE\xE0\xAD\xA8\xAA", "\x91\xE0\xA5\xA4\xA0", "\x97\xA5\xE2\xA2\xA5\xE0\xA3", "\x8F\xEF\xE2\xAD\xA8\xE6\xA0", "\x91\xE3\xA1\xA1\xAE\xE2\xA0"}};
 static const char dayShort[kLanguageCount][7][ShortSlot] PROGMEM = {
   {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"},
-  {"Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"},
-  {"Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"},
-  {"Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"},
-  {"Son", "Mon", "Die", "Mit", "Don", "Fre", "Sam"},
-  {"Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"}};
+  // Вс, Пн, Вт, Ср, Чт, Пт, Сб
+  {"\x82\xE1", "\x8F\xAD", "\x82\xE2", "\x91\xE0", "\x97\xE2", "\x8F\xE2", "\x91\xA1"}};
 // The name held in a flash slot of `width` bytes.
 static std::string localName(const char* slot, size_t width) {
   char b[DaySlot];
@@ -1808,6 +1810,10 @@ void Engine::setLanguage(uint8_t language) {
 // (including for scroll's "reinstalling the same values must not restart the
 // pause" rule) rather than a wasted resolve pass every call.
 void Engine::setValues(std::vector<ThemeValue> values) {
+  // Fetched text is UTF-8. A spec 2 theme shows Russian letters, so bring the
+  // values to one byte per character; anything else the font lacks reads '?'.
+  if (theme_.spec >= 2)
+    for (auto& v : values) v.value.resize(utf8ToCp866(v.value.data(), v.value.size(), &v.value[0]));
   if (values_ == values) return;
   values_ = std::move(values);
   valuesChanged_ = true;

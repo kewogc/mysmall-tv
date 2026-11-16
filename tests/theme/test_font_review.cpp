@@ -2,6 +2,7 @@
 // do not pin down. Each check prints "FAIL <name>" and the run goes on, so one
 // run shows every gap; the exit status is the number of failures.
 #include "ThemePackage.h"
+#include "Text866.h"
 #include <cstring>
 #include <iostream>
 #include <random>
@@ -131,8 +132,12 @@ static void testValues() {
     f.e.update(0,nullptr);
     CHECK("values: render ok "+std::to_string(n),render(f.e,{Rect(0,0,240,240)},f.p,f.d));
     CHECK("values: inside the screen "+std::to_string(n),!f.d.outside);
+    // The engine shows a fetched value one byte a character (Text866.h): the
+    // UTF-8 degree sign of the first value is one cell, not two.
+    std::string shown=values[n];
+    shown.resize(utf8ToCp866(shown.data(),shown.size(),&shown[0]));
     uint16_t expected[240*240]{};
-    model(expected,values[n],5,10);
+    model(expected,shown,5,10);
     CHECK("values: pixels "+std::to_string(n),same(f.d,expected,"values"));
   }
 }

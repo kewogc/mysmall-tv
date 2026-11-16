@@ -193,8 +193,8 @@ class FontTests(unittest.TestCase):
     def test_package_checks_every_language(self):
         # A localized value (spec 2): each language's fixed text needs its
         # glyphs, and the error names the language.
-        for value, error in [({'en': 'AB', 'pt': 'BA'}, None), ({'en': 'AB', 'pt': 'AC'}, r"value\.pt: .*'C'"),
-                             ({'en': 'C{HH}', 'pt': 'A'}, r"value\.en: .*'C'")]:
+        for value, error in [({'en': 'AB', 'ru': 'BA'}, None), ({'en': 'AB', 'ru': 'AC'}, r"value\.ru: .*'C'"),
+                             ({'en': 'C{HH}', 'ru': 'A'}, r"value\.en: .*'C'")]:
             with tempfile.TemporaryDirectory() as d:
                 root = Path(d)
                 self.theme(root, 2, {'file': 'f.ttf', 'size': 20, 'glyphs': 'AB'}, value)

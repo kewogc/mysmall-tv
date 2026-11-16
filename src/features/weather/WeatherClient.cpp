@@ -1,5 +1,6 @@
 #include "WeatherClient.h"
 #include "../../Platform.h"
+#include "../../Gfx.h"
 #include <ArduinoJson.h>
 
 static WeatherData g_weather;
@@ -7,31 +8,31 @@ static bool g_fetching = false;
 
 const char* weatherCodeToDesc(uint8_t code) {
   switch (code) {
-    case 0:  return "Clear";
-    case 1:  return "Mainly Clear";
-    case 2:  return "Partly Cloudy";
-    case 3:  return "Overcast";
+    case 0:  return TR("Clear", "Ясно");
+    case 1:  return TR("Mainly Clear", "Малооблачно");
+    case 2:  return TR("Partly Cloudy", "Перем. облачность");
+    case 3:  return TR("Overcast", "Пасмурно");
     case 45:
-    case 48: return "Foggy";
+    case 48: return TR("Foggy", "Туман");
     case 51:
     case 53:
-    case 55: return "Drizzle";
+    case 55: return TR("Drizzle", "Морось");
     case 61:
     case 63:
-    case 65: return "Rain";
+    case 65: return TR("Rain", "Дождь");
     case 71:
     case 73:
-    case 75: return "Snow";
-    case 77: return "Snow Grains";
+    case 75: return TR("Snow", "Снег");
+    case 77: return TR("Snow Grains", "Снежная крупа");
     case 80:
     case 81:
-    case 82: return "Rain Showers";
+    case 82: return TR("Rain Showers", "Ливень");
     case 85:
-    case 86: return "Snow Showers";
+    case 86: return TR("Snow Showers", "Снегопад");
     case 95:
     case 96:
-    case 99: return "Thunderstorm";
-    default: return "Cloudy";
+    case 99: return TR("Thunderstorm", "Гроза");
+    default: return TR("Cloudy", "Облачно");
   }
 }
 

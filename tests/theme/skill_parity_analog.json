@@ -113,7 +113,7 @@
    "color": "#e9edf4",
    "value": {
     "en": "{WEEKDAY}",
-    "de": "Heute {WD} {DD}. {MON}"
+    "ru": "Сегодня {WD}, {DD} {MON}"
    }
   },
   {

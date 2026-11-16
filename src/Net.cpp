@@ -1,5 +1,6 @@
 #include "Net.h"
 #include "Platform.h"
+#include "Gfx.h"
 #include <DNSServer.h>
 
 static NetMode     g_mode = NET_AP;
@@ -139,7 +140,7 @@ void netBegin(const Settings& s, void (*onProgress)(const char*)) {
   netHookEvents();
 
   if (s.wifiCount == 0) {
-    if (onProgress) onProgress("No WiFi saved");
+    if (onProgress) onProgress(TR("No WiFi saved", "Wi-Fi не настроен"));
     startAP(s);
     return;
   }
@@ -156,7 +157,7 @@ void netBegin(const Settings& s, void (*onProgress)(const char*)) {
 #if !defined(SMALLTV_FAMILY_ESP32)
     // Scan anyway, results unused (about 2 s at boot). Part of the fix for the
     // 203 refusal described in beginJoin(); the two went in together.
-    if (onProgress) onProgress("Scanning...");
+    if (onProgress) onProgress(TR("Scanning...", "Поиск сетей..."));
     WiFi.scanNetworks();
     WiFi.scanDelete();
 #endif
@@ -165,7 +166,7 @@ void netBegin(const Settings& s, void (*onProgress)(const char*)) {
   } else {
     int32_t rssi[MAX_WIFI_NETS];
     for (uint8_t i = 0; i < s.wifiCount; i++) { rssi[i] = -32768; seen[i] = false; }
-    if (onProgress) onProgress("Scanning...");
+    if (onProgress) onProgress(TR("Scanning...", "Поиск сетей..."));
     int found = WiFi.scanNetworks();
     for (int a = 0; a < found; a++)
       for (uint8_t i = 0; i < s.wifiCount; i++)
@@ -231,7 +232,7 @@ void netBegin(const Settings& s, void (*onProgress)(const char*)) {
     delay(100);
   }
 
-  if (onProgress) onProgress("WiFi failed -> AP");
+  if (onProgress) onProgress(TR("WiFi failed -> AP", "Нет Wi-Fi -> точка"));
   startAP(s);
 }
 

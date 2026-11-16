@@ -45,7 +45,7 @@ TOKENS = ['HH', 'hh', 'MM', 'SS', 'DD', 'MON', 'MONTH', 'WD', 'WEEKDAY', 'YYYY']
 TOKENS_SPEC2 = ['H', 'MO', 'AMPM']
 DEVICE_NAMES = ['focusToday', 'focusGoal', 'streak', 'humidity', 'temperature']
 TIME_NAMES = ['second', 'minute', 'hour', 'hour12', 'secondOfDay', 'day', 'month', 'weekday', 'moon']
-LANGS = ['en', 'pt', 'es', 'fr', 'de', 'it']
+LANGS = ['en', 'ru']
 ROTATION = ('arc', 'hand', 'ticks')
 
 PALETTES = {
@@ -62,32 +62,46 @@ PALETTES = {
 
 MONTHS = [
     ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
-    ["Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"],
-    ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
-    ["Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"],
-    ["Januar", "Februar", "Maerz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"],
-    ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"]]
+    # Genitive, as in a date: "16 ноября".
+    ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"]]
 MONTHS_SHORT = [
     ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-    ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"],
-    ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"],
-    ["Janv", "Fevr", "Mars", "Avr", "Mai", "Juin", "Juil", "Aout", "Sept", "Oct", "Nov", "Dec"],
-    ["Jan", "Feb", "Mar", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"],
-    ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"]]
+    ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"]]
 DAYS = [  # Sunday first, like tm_wday
     ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-    ["Domingo", "Segunda-feira", "Terca-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sabado"],
-    ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"],
-    ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"],
-    ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"],
-    ["Domenica", "Lunedi", "Martedi", "Mercoledi", "Giovedi", "Venerdi", "Sabato"]]
+    ["Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"]]
 DAYS_SHORT = [
     ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-    ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"],
-    ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"],
-    ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"],
-    ["Son", "Mon", "Die", "Mit", "Don", "Fre", "Sam"],
-    ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"]]
+    ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"]]
+
+# What a spec 2 text may hold besides printable ASCII: the Russian letters and
+# two signs. The firmware keeps them one byte each (CP866), so every one is a
+# single cell, as a Python character is here.
+RUSSIAN = 'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюяЁё'
+SIGNS = '\u00b0\u00b7'   # degree sign, middle dot
+# Their glyphs, 5 column bytes each like FONT below: the letters in the order
+# of RUSSIAN (the firmware's FontCyr866.h, from tools/make_cyr_font.py --hex),
+# then the two signs from the built-in font.
+FONT_RU = bytes.fromhex(
+    "7c1211127c7f494949317f494949367f01010101603e213f607f4949494163147f146322414949367f1008047f7e1009047e7f08142241403e01017f7f021c027f7f0808087f3e4141413e7f0101017f7f090909063e4141412203017f0103074848483f0c127f120c63140814637f40407fc0070808087f7f407f407f7f407f40ff017f4848307f4830007f7f48484830224149493e7f083e413e462919097f20545478403c4a4a49317c545454287c040404006038243c6038545454186c107c106c44545454287c2010087c7c2112097c7c10284400403804047c7c0810087c7c1010107c38444444387c0404047cfc18242418384444442804047c04044c9090907c1824ff241844281028447c40407cc00c1010107c7c407c407c7c407c40fc047c5050207c5020007c7c5050502000445454387c10384438483414147c7e4b4a4b423855545518"
+    "00060909060000101000")
+
+
+def glyph_column(ch, col):
+    """Column `col` of the built-in font's glyph for `ch`; 0 where it has none."""
+    code = ord(ch)
+    if code < 127:
+        return FONT[code * 5 + col]
+    i = (RUSSIAN + SIGNS).find(ch)
+    return FONT_RU[i * 5 + col] if i >= 0 else 0
+
+
+def device_text(s, spec):
+    """A fetched value as a spec 2 theme shows it: a character the font lacks reads '?'."""
+    if spec < 2:
+        return s
+    return ''.join(c if ' ' <= c <= '~' or c in RUSSIAN or c in SIGNS else '?' for c in s)
+
 
 # Classic Adafruit GFX 5x8 font, ASCII 0-126 (see FONT-LICENSE.txt), the
 # firmware's built-in font: 5 column bytes per glyph, bit n = row n.
@@ -253,7 +267,9 @@ def applicable(l, target):
 
 
 def valid_text(s, fields, spec, own_device):
-    if not isinstance(s, str) or re.search(r'[^\x20-\x7e]', s):
+    if not isinstance(s, str):
+        return False
+    if any(not (' ' <= c <= '~' or (spec >= 2 and (c in RUSSIAN or c in SIGNS))) for c in s):
         return False
     i = 0
     while i < len(s):
@@ -412,8 +428,8 @@ def validate(theme, assets=None):
                     fail(f'{p}.value', 'needs an "en" text, shown for every other language')
                 for k, text in v.items():
                     if k not in LANGS:
-                        fail(f'{p}.value', f'unknown language {k}, expected en, pt, es, fr, de or it')
-                    elif not isinstance(text, str) or not 1 <= len(text) <= 128:
+                        fail(f'{p}.value', f'unknown language {k}, expected en or ru')
+                    elif not isinstance(text, str) or not 1 <= nbytes(text) <= 128:
                         fail(f'{p}.value.{k}', 'each language expects 1 to 128 bytes')
                     elif not valid_text(text, fields, spec, own_device):
                         fail(f'{p}.value.{k}', 'use printable ASCII and declared clock/data variables only')
@@ -1214,7 +1230,8 @@ class Renderer:
         self.theme, self.assets = theme, assets
         self.lang = LANGS.index(lang) if theme['spec'] >= 2 and lang in LANGS else 0
         self.lang_code = LANGS[self.lang]
-        self.data = data or {}
+        # Fetched text goes through the font's character set, as on the device.
+        self.data = {k: device_text(v, theme['spec']) if isinstance(v, str) else v for k, v in (data or {}).items()}
         self.scroll_since = {}
 
     def layer_text(self, l):
@@ -1262,7 +1279,6 @@ class Renderer:
                         since = (key, elapsed)
                         self.scroll_since[idx] = since
                     offset = scroll_offset(sc, r['scroll.width'], r['scroll.speed'], width, elapsed - since[1])
-                codes = [ord(c) for c in text]
                 for y in range(y1, y2):
                     bit = 1 << ((y - by) * 8 // size)
                     for x in range(x1, x2):
@@ -1270,7 +1286,7 @@ class Renderer:
                         if cx is None:
                             continue
                         col, ci = (cx % cell) * 6 // cell, cx // cell
-                        if col < 5 and ci < len(codes) and codes[ci] < 127 and FONT[codes[ci] * 5 + col] & bit:
+                        if col < 5 and ci < len(text) and glyph_column(text[ci], col) & bit:
                             out[y * 240 + x] = fg
                 continue
             shape, sw = l['shape'], r['strokeWidth']

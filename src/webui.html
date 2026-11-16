@@ -198,8 +198,9 @@ small.hint{display:block;color:var(--mut);margin-top:4px;font-size:12px}
   <div class="card"><h2>Clock &amp; night mode</h2>
    <label>Timezone</label>
    <select id="tz"></select>
-   <label>Language <span class="muted">(month and weekday names on spec 2 themes)</span></label>
-   <select id="lang"><option value="en">English</option><option value="pt">Portugu&ecirc;s</option><option value="es">Espa&ntilde;ol</option><option value="fr">Fran&ccedil;ais</option><option value="de">Deutsch</option><option value="it">Italiano</option></select>
+   <label>Language</label>
+   <select id="lang" onchange="setLang(this.value)"><option value="en">English</option><option value="ru">Русский</option></select>
+   <small class="hint">Used by this page and by the text on the clock's screen: month and weekday names, system messages. The page switches at once; press Save settings to keep the choice.</small>
    <div class="muted" id="clockNow" style="margin:8px 0">Clock: -</div>
    <label>Device location</label>
    <div class="row">
@@ -303,8 +304,6 @@ small.hint{display:block;color:var(--mut);margin-top:4px;font-size:12px}
   </div>
  </section>
 
- <!-- USAGE
-
   <!-- TICKER 2 (feature) -->
   <section id="ticker2" class="tab">
    <div class="card"><h2>Live data (Stock 2 - Overseas / 해외주식)</h2><div id="tickBox2" class="muted">-</div>
@@ -363,7 +362,6 @@ small.hint{display:block;color:var(--mut);margin-top:4px;font-size:12px}
     <small class="hint" id="symHint2"></small>
    </div>
   </section>
- (feature) -->
   <!-- WEATHER (feature) -->
   <section id="weather" class="tab">
    <div class="card"><h2>Weather Data Refresh (날씨 데이터 갱신 주기)</h2>
@@ -512,7 +510,7 @@ function placePick(){var p=PLACES[parseInt(gv('locRes'))]; if(!p)return;
  sv('locLat',p.latitude.toFixed(4)); sv('locLon',p.longitude.toFixed(4))}
 function sunToggled(){if(gc('sunEnabled'))sc('autoBrightness',false)}
 function autoToggled(){if(gc('autoBrightness'))sc('sunEnabled',false)}
-function radarLocChanged(){var d=gc('radarUseDevice'); $('radarLat').disabled=d; $('radarLon').disabled=d}
+function radarLocChanged(){var d=gc('radarUseDevice'),a=$('radarLat'),b=$('radarLon'); if(a)a.disabled=d; if(b)b.disabled=d}
 // The line under the schedule, from the settings (c) and the status reply (s).
 // null: the schedule is off, leave the hint alone. s.bl is the backlight level
 // 0..255; it reads -1 until the first write after boot (and is missing on an
@@ -555,7 +553,16 @@ var TZMAP={
  'Europe/Copenhagen':'CET-1CEST,M3.5.0,M10.5.0/3',
  'Europe/Athens':'EET-2EEST,M3.5.0/3,M10.5.0/4','Europe/Helsinki':'EET-2EEST,M3.5.0/3,M10.5.0/4',
  'Europe/Bucharest':'EET-2EEST,M3.5.0/3,M10.5.0/4','Europe/Kyiv':'EET-2EEST,M3.5.0/3,M10.5.0/4',
- 'Europe/Istanbul':'<+03>-3','Europe/Moscow':'MSK-3',
+ 'Europe/Istanbul':'<+03>-3',
+ // Russia: no DST
+ 'Europe/Kaliningrad':'EET-2','Europe/Moscow':'MSK-3','Europe/Kirov':'MSK-3','Europe/Volgograd':'MSK-3',
+ 'Europe/Samara':'<+04>-4','Europe/Astrakhan':'<+04>-4','Europe/Saratov':'<+04>-4','Europe/Ulyanovsk':'<+04>-4',
+ 'Asia/Yekaterinburg':'<+05>-5','Asia/Omsk':'<+06>-6',
+ 'Asia/Novosibirsk':'<+07>-7','Asia/Barnaul':'<+07>-7','Asia/Tomsk':'<+07>-7','Asia/Novokuznetsk':'<+07>-7',
+ 'Asia/Krasnoyarsk':'<+07>-7','Asia/Irkutsk':'<+08>-8','Asia/Chita':'<+09>-9','Asia/Yakutsk':'<+09>-9',
+ 'Asia/Khandyga':'<+09>-9','Asia/Vladivostok':'<+10>-10','Asia/Ust-Nera':'<+10>-10',
+ 'Asia/Magadan':'<+11>-11','Asia/Sakhalin':'<+11>-11','Asia/Srednekolymsk':'<+11>-11',
+ 'Asia/Kamchatka':'<+12>-12','Asia/Anadyr':'<+12>-12',
  'America/New_York':'EST5EDT,M3.2.0,M11.1.0','America/Toronto':'EST5EDT,M3.2.0,M11.1.0',
  'America/Chicago':'CST6CDT,M3.2.0,M11.1.0','America/Denver':'MST7MDT,M3.2.0,M11.1.0',
  'America/Phoenix':'MST7','America/Los_Angeles':'PST8PDT,M3.2.0,M11.1.0',
@@ -568,8 +575,18 @@ var TZMAP={
  'Australia/Perth':'AWST-8','Australia/Sydney':'AEST-10AEDT,M10.1.0,M4.1.0/3',
  'Australia/Adelaide':'ACST-9:30ACDT,M10.1.0,M4.1.0/3','Australia/Brisbane':'AEST-10',
  'Pacific/Auckland':'NZST-12NZDT,M9.5.0,M4.1.0/3','Pacific/Honolulu':'HST10'};
-function fillTz(){var s=$('tz');if(!s)return;var keys=Object.keys(TZMAP).filter(function(k){return k!==''});
- keys.sort();s.innerHTML='<option value="">UTC</option>'+keys.map(function(k){return '<option value="'+k+'">'+k+'</option>'}).join('');}
+// Minutes east of UTC, read from the POSIX rule: the standard offset is the
+// number after the first name, and POSIX counts west as positive. null: unreadable.
+function tzOff(p){var m=/^(?:<[^>]*>|[A-Za-z]+)([+-]?)(\d+)(?::(\d+))?/.exec(p||'');if(!m)return null;
+ var v=(+m[2])*60+(+(m[3]||0));return m[1]==='-'?v:-v}
+function tzLabel(k,p){var o=tzOff(p);if(o===null)return k;var a=Math.abs(o);
+ return '(UTC'+(o<0?'-':'+')+('0'+Math.floor(a/60)).slice(-2)+':'+('0'+a%60).slice(-2)+') '+k}
+// One entry per zone, by offset and then by name. UTC is the '' entry (the key
+// 'UTC' stays in TZMAP so a stored "UTC" still resolves, but is not listed twice).
+function fillTz(){var s=$('tz');if(!s)return;var keys=Object.keys(TZMAP).filter(function(k){return k!==''&&k!=='UTC'});
+ keys.push('');
+ keys.sort(function(a,b){return tzOff(TZMAP[a])-tzOff(TZMAP[b])||(a<b?-1:a>b?1:0)});
+ s.innerHTML=keys.map(function(k){return '<option value="'+k+'">'+tzLabel(k||'UTC',TZMAP[k])+'</option>'}).join('');}
 
 var MODEOPT={ticker:'stocks',ticker2:'stocks2',weather:'weather',usage:'usage',radar:'radar',ha:'ha',theme:'theme'};
 var CAROPT={ticker:'carouselTicker',ticker2:'carouselTicker2',weather:'carouselWeather',usage:'carouselUsage',radar:'carouselRadar',ha:'carouselHa',theme:'carouselTheme'};
@@ -630,8 +647,8 @@ function loadConfig(){return j('/api/config').then(function(c){C=c;
  var chE=$('chip'); if(chE&&chipName){chE.textContent=chipName;chE.style.display='inline-block';}
  // clock slice
  fillTz(); var ck=c.clock||{};
- if(ck.tz && !(ck.tz in TZMAP)){var _ts=$('tz'); if(_ts){var _o=document.createElement('option');_o.value=ck.tz;_o.textContent=ck.tz;_ts.appendChild(_o);}}
- sv('tz',ck.tz||''); sv('lang',ck.lang||'en'); sc('nightEnabled',!!ck.nightEnabled);
+ if(ck.tz && !(ck.tz in TZMAP)){var _ts=$('tz'); if(_ts){var _o=document.createElement('option');_o.value=ck.tz;_o.textContent=tzLabel(ck.tz,ck.tzPosix);_ts.appendChild(_o);}}
+ sv('tz',ck.tz==='UTC'?'':(ck.tz||'')); sv('lang',ck.lang||'en'); setLang(gv('lang')); sc('nightEnabled',!!ck.nightEnabled);
  sv('nightStart',ck.nightStart||'22:00'); sv('nightEnd',ck.nightEnd||'07:00');
  sv('nightLevel',ck.nightLevel!=null?ck.nightLevel:0); $('nlVal')&&($('nlVal').textContent=(ck.nightLevel!=null?ck.nightLevel:0));
  sv('locLat',ck.lat||''); sv('locLon',ck.lon||''); sv('wLat',ck.lat||37.566); sv('wLon',ck.lon||126.9784);
@@ -1110,5 +1127,438 @@ function upload(){var f=$('fw').files[0];if(!f){toast('Pick a .bin first');retur
 }
 
 loadConfig().then(loadStatus,loadStatus);   // the status polls on, whatever the config did
+// i18n begin (tested by tests/i18n/test_webui.js)
+// English is the source text of the page, in the HTML and in the code above.
+// Russian is laid over it: RU maps an English text to its translation, and
+// whatever reaches the page (static text, text the code writes later,
+// placeholders, toasts) is looked up there. To add or change a string, write
+// the English on the page as usual and add the pair below.
+//  - The key is the text as the page shows it, spaces collapsed.
+//  - An element with <b>, <code> or <a> inside (the long hints) is translated
+//    as a whole: key and value are its HTML as written in the source, links
+//    as a bare <a> (the page keeps the real link element).
+//  - {0}, {1}... stand for a part the code fills in. Each literal part of a
+//    key must be one piece of text in the source, so a text glued from
+//    several strings gets a key per string and {0} for the rest; a part that
+//    is itself a key is translated too.
+// i18n dict begin
+var RU={
+// tabs
+"Status":"Состояние",
+"General":"Общие",
+"Stock 1 (Domestic)":"Акции 1 (внутр. рынок)",
+"Stock 2 (Overseas)":"Акции 2 (зарубежные)",
+"Weather":"Погода",
+"Display":"Дисплей",
+"WiFi":"Wi-Fi",
+"System":"Система",
+// status
+"Device":"Устройство",
+"Loading...":"Загрузка…",
+"setup mode":"режим настройки",
+"Firmware":"Прошивка",
+"Mode":"Режим",
+"Network":"Сеть",
+"Signal":"Сигнал",
+"Last join failure":"Последняя ошибка подключения",
+"Free heap":"Свободная память",
+"{0} ({1} B largest block)":"{0} (наибольший блок — {1} B)",
+"Uptime":"Время работы",
+"Last reset":"Причина перезапуска",
+"Last crash":"Последний сбой",
+"clear":"очистить",
+"Crash record cleared":"Запись о сбое удалена",
+"Radar":"Радар",
+"held":"приостановлен",
+"up":"подключён",
+"connecting":"подключается",
+"off":"выключен",
+"Restart the device to switch Home Assistant on or off.":"Чтобы включить или выключить Home Assistant, перезагрузите часы.",
+"Off: there was not enough memory at boot. Restart the device to try again, or clear the broker host.":"Выключено: при запуске не хватило памяти. Перезагрузите часы, чтобы попробовать ещё раз, или очистите поле с адресом брокера.",
+"Off: the device is in safe mode after a crash. Restart it.":"Выключено: после сбоя часы работают в безопасном режиме. Перезагрузите их.",
+"{0}, never succeeded":"{0}, успешных запросов ещё не было",
+"{0}, last ok {1}s ago":"{0}, последний успешный запрос {1} с назад",
+"{0}, tried {1}s ago":"{0}, последняя попытка {1} с назад",
+"{0}, TLS rx {1} B":"{0}, принято по TLS {1} B",
+"{0}, HTTP {1}":"{0}, HTTP {1}",
+"{0} ({1} in feed)":"{0} (в потоке данных: {1})",
+"{0} aircraft":"самолётов: {0}",
+"all filtered out":"все отфильтрованы",
+"idle":"ожидание",
+// general
+"Mode (작동 모드)":"Режим работы",
+"What this device shows (화면 표시 모드)":"Что показывать на экране",
+"Stock 1 (Domestic / 국내주식)":"Акции 1 (внутренний рынок)",
+"Stock 2 (Overseas / 해외주식)":"Акции 2 (зарубежные)",
+"Weather (날씨)":"Погода",
+"Carousel (rotate modes / 자동 순환)":"Карусель (режимы по очереди)",
+"Switch mode every (순환 주기, 분)":"Менять режим каждые (мин)",
+"예: 1 또는 3":"например, 1 или 3",
+"Rotate through apps (순환에 포함할 앱 선택)":"Что включить в карусель",
+"Stock 1 (국내주식)":"Акции 1 (внутренний рынок)",
+"Stock 2 (해외주식)":"Акции 2 (зарубежные)",
+"Carousel(자동 순환) 모드를 선택하면 아래 체크된 앱들이 설정한 순환 주기(초)마다 번갈아가며 자동으로 화면에 표시됩니다. 특정 앱만 고정하고 싶다면 원하는 모드를 선택하세요.":"В режиме «Карусель» отмеченные экраны сменяют друг друга через заданное время. Чтобы на экране постоянно оставался один из них, выберите его режим.",
+"Save settings":"Сохранить настройки",
+"Save failed":"Не удалось сохранить",
+"Save failed: {0}":"Не удалось сохранить: {0}",
+"Request failed":"запрос не выполнен",
+"Saved — rebooting...":"Сохранено, часы перезагружаются…",
+"Saved. {0}":"Сохранено. {0}",
+"Saved":"Сохранено",
+// wifi
+"Saved networks":"Сохранённые сети",
+"Scan networks":"Найти сети",
+"Scanning...":"Ищем сети…",
+"No networks found":"Сети не найдены",
+"+ Add network":"+ Добавить сеть",
+"password":"пароль",
+"Max 4":"Не больше 4",
+"Save & connect (reboots)":"Сохранить и подключиться (с перезагрузкой)",
+"Saved, rebooting to connect...":"Сохранено. Часы перезагружаются и подключаются к сети…",
+"2.4 GHz only. Up to 4 networks; at boot the device joins the strongest one it can see. Tap a scan result to fill a row. Leave a password blank to keep the stored one.":"Только 2,4 ГГц. Можно сохранить до 4 сетей: при включении часы подключаются к той из доступных, у которой сильнее сигнал. Нажмите на найденную сеть, чтобы подставить её имя в строку. Если оставить поле пароля пустым, сохранённый пароль не изменится.",
+"Device name":"Имя устройства",
+"Hostname":"Имя хоста",
+"Reachable as <code>http://&lt;hostname&gt;.local</code> via mDNS. Running several SmallTVs? Give each its own name (<code>smalltv-desk</code>, <code>smalltv-shelf</code>) so browsers and the clawdmeter daemon's <code>--push-to</code> reach the right device. Saving a new name reboots the device.":"Часы доступны в сети по адресу <code>http://&lt;имя-хоста&gt;.local</code> (mDNS). Если у вас несколько SmallTV, дайте каждому своё имя (<code>smalltv-desk</code>, <code>smalltv-shelf</code>), чтобы браузер и параметр <code>--push-to</code> демона clawdmeter обращались к нужному устройству. После сохранения нового имени часы перезагрузятся.",
+"Enable the tunnel":"Включить туннель",
+"This device's private key":"Закрытый ключ этого устройства",
+"(unchanged)":"(без изменений)",
+"paste the private key":"вставьте закрытый ключ",
+"Peer public key":"Открытый ключ сервера (пира)",
+"server public key":"открытый ключ сервера",
+"Endpoint host":"Адрес сервера",
+"Port":"Порт",
+"Tunnel address":"Адрес в туннеле",
+"Keepalive (s, 0 = off)":"Keepalive (с, 0 — выкл.)",
+"Reaches the device from outside your LAN without forwarding port 80 to the internet. Generate the key pair on your computer (<code>wg genkey | tee dev.key | wg pubkey</code>), put the private key here and the public one on the server as this device's peer; most VPN servers and providers hand you both. <b>Allowed IPs</b> decides what the device routes into the tunnel, and it also sets the tunnel netmask, so a lone <code>/32</code> address reaches nothing: list the subnet the peer is on (<code>10.6.0.0/24</code>). <code>0.0.0.0/0</code> sends everything through the VPN. The private key stays on the device and in its settings export; the page never reads it back. The tunnel needs the clock, so NTP starts whenever it is enabled.":"Позволяет открывать часы из-за пределов домашней сети, не пробрасывая порт 80 в интернет. Создайте пару ключей на компьютере (<code>wg genkey | tee dev.key | wg pubkey</code>): закрытый ключ введите здесь, а открытый добавьте на сервере как пир для этого устройства. Большинство VPN-серверов и провайдеров выдают оба ключа сами. Поле <b>Allowed IPs</b> определяет, какие адреса часы направляют в туннель, и заодно задаёт маску сети туннеля, поэтому с одним адресом <code>/32</code> ничего доступно не будет: укажите подсеть, в которой находится пир (<code>10.6.0.0/24</code>). С <code>0.0.0.0/0</code> через VPN пойдёт весь трафик. Закрытый ключ хранится на устройстве и попадает в экспорт настроек; страница его обратно не показывает. Туннелю нужно точное время, поэтому при включённом туннеле всегда работает синхронизация по NTP.",
+"WireGuard is not part of this build.":"В этой сборке прошивки нет WireGuard.",
+"Tunnel off.":"Туннель выключен.",
+"Tunnel suspended after repeated reboots. Check the settings and save again to retry.":"Туннель приостановлен после нескольких перезагрузок подряд. Проверьте настройки и сохраните их ещё раз, чтобы повторить попытку.",
+"Tunnel not started: a field below is empty or malformed. Check the tunnel address, which needs a prefix like /32.":"Туннель не запущен: одно из полей ниже пустое или заполнено неверно. Проверьте адрес в туннеле: в нём должен быть префикс, например /32.",
+"Tunnel up{0}":"Туннель работает{0}",
+", last handshake {0} ago{1}":", последнее рукопожатие {0} назад{1}",
+"Tunnel on, waiting for the endpoint name to resolve.":"Туннель включён, ждём, пока определится IP-адрес сервера.",
+"Tunnel on, handshakes sent to {0} with no reply. Check that the peer lists this device's public key and that UDP to that port is open.":"Туннель включён, рукопожатия уходят на {0}, но ответа нет. Убедитесь, что на сервере добавлен открытый ключ этого устройства и что UDP-порт открыт.",
+"Setup hotspot (AP)":"Точка доступа для настройки (AP)",
+"AP name":"Имя точки доступа",
+"AP password":"Пароль точки доступа",
+"(min 8 chars)":"(не короче 8 символов)",
+"(open)":"(открытая)",
+"No password (open hotspot)":"Без пароля (открытая точка доступа)",
+"The AP appears when no WiFi is configured or the connection fails. Like the WiFi passwords above, leaving the field blank keeps the stored one; tick the box to clear it and leave the hotspot open.":"Точка доступа включается, когда Wi-Fi не настроен или подключиться не удалось. Как и с паролями Wi-Fi выше, пустое поле оставляет сохранённый пароль; чтобы убрать пароль и сделать точку открытой, поставьте галочку.",
+// display
+"Theme clocks":"Темы-циферблаты",
+"Installed theme":"Установленная тема",
+"Use theme":"Включить тему",
+"Remove":"Удалить",
+"Install a theme":"Установка темы",
+"Install .stheme":"Установить .stheme",
+"Loading themes…":"Загрузка тем…",
+"Theme clocks use the timezone below. Install a package, then choose Use theme. Notifications continue to appear above it.":"Темы-циферблаты показывают время в часовом поясе, выбранном ниже. Установите пакет темы и нажмите «Включить тему». Уведомления по-прежнему появляются поверх циферблата.",
+"Theme request failed":"запрос не выполнен",
+"No theme selected":"Тема не выбрана",
+"Invalid package: {0} — remove it and install a corrected package.":"Пакет повреждён: {0}. Удалите его и установите исправленный.",
+"Could not read theme":"не удалось прочитать тему",
+"{0} — invalid package":"{0} — повреждённый пакет",
+"{0} installed · {1} KiB free":"Установлено тем: {0} · свободно {1} KiB",
+"{0} installed · {1} KiB free{2}":"Установлено тем: {0} · свободно {1} KiB{2}",
+"Choose a valid installed theme first":"Сначала выберите исправную установленную тему",
+"Theme selected":"Тема включена",
+"Theme removed":"Тема удалена",
+"Choose a .stheme package":"Выберите пакет .stheme",
+"Installing…":"Устанавливаем…",
+"Install failed":"Не удалось установить тему",
+"Theme installed":"Тема установлена",
+"Screen":"Экран",
+"Brightness:":"Яркость:",
+"Auto-brightness (light sensor on A0)":"Автояркость (датчик освещённости на A0)",
+"Orientation":"Поворот экрана",
+"Backlight is active-low (try if screen stays dark)":"Подсветка с инверсным управлением (попробуйте, если экран остаётся тёмным)",
+"Colour":"Цвет",
+"Colour order":"Порядок цветов",
+"Panel default":"Как задано для панели",
+"BGR (swap red and blue)":"BGR (красный и синий меняются местами)",
+"Invert the panel":"Инвертировать цвета",
+"Red:":"Красный:",
+"Green:":"Зелёный:",
+"Blue:":"Синий:",
+"Reset to 100%":"Сбросить до 100%",
+"Gains reset — press Save settings to apply":"Уровни каналов сброшены. Чтобы применить, нажмите «Сохранить настройки»",
+"The panels shipped in these devices are not the same part, so the same firmware can look warm on one unit and green on another. Turn a channel down to pull that cast out. If red and blue come out swapped, switch the colour order; if the whole screen looks like a negative, tick Invert. Saving applies it immediately, so you can watch the screen while you adjust.":"В эти устройства ставят разные панели, поэтому с одной и той же прошивкой один экран уходит в тёплые тона, а другой зеленит. Убавьте нужный канал, чтобы убрать лишний оттенок. Если красный и синий перепутаны, смените порядок цветов; если изображение похоже на негатив, включите инверсию. Изменения применяются сразу после сохранения, так что результат виден на экране во время настройки.",
+"Button":"Кнопка",
+"Short press":"Короткое нажатие",
+"Long press":"Долгое нажатие",
+"Nothing":"Ничего",
+"Screen off (~1s)":"Погасить экран (~1 с)",
+"Home (first page)":"Домой (первая страница)",
+"Next page (pause carousel)":"Следующая страница (карусель на паузу)",
+"Show network / IP":"Показать сеть и IP",
+"Wake screen":"Включить экран",
+"Acknowledge notification":"Подтвердить уведомление",
+"Touch sensitivity:":"Чувствительность:",
+"The capacitive button reads pressed when its touch value drops below this percent of the idle baseline. Lower = firmer touch needed; higher = more sensitive. Next page freezes the carousel on the current page; Home resumes it.":"Сенсорная кнопка считается нажатой, когда её показание падает ниже этого процента от уровня покоя. Чем меньше значение, тем сильнее нужно нажимать; чем больше, тем кнопка чувствительнее. «Следующая страница» останавливает карусель на текущей странице, «Домой» запускает её снова.",
+"Clock & night mode":"Время и ночной режим",
+"Timezone":"Часовой пояс",
+"Language":"Язык",
+"Used by this page and by the text on the clock's screen: month and weekday names, system messages. The page switches at once; press Save settings to keep the choice.":"На этом языке показываются эта страница и надписи на экране часов: названия месяцев и дней недели, системные сообщения. Страница переключается сразу; чтобы выбор сохранился, нажмите «Сохранить настройки».",
+"Clock: enable night mode, the sun schedule, a theme clock, or WireGuard to start NTP":"Время: синхронизация по NTP начнётся, когда вы включите ночной режим, расписание по солнцу, тему-циферблат или WireGuard",
+"Clock: {0}":"Время: {0}",
+"synced":"синхронизировано",
+"waiting for NTP...":"ждём NTP…",
+"{0} · night mode active":"{0} · ночной режим включён",
+"{0} · night mode waiting for NTP":"{0} · ночной режим ждёт синхронизации по NTP",
+"Device location":"Местоположение устройства",
+"latitude, e.g. 52.3676":"широта, например 52.3676",
+"longitude, e.g. 4.9041":"долгота, например 4.9041",
+"Search a place":"Найти место",
+"Search":"Найти",
+"Used by the sunrise and sunset schedule below, and by the radar unless it has its own. The search runs in your browser (open-meteo.com); the device never sends the name anywhere. Leave 0/0 for none.":"Нужно для расписания по восходу и закату ниже, а также для радара, если у него не заданы свои координаты. Поиск выполняет ваш браузер (open-meteo.com): часы никуда не отправляют название места. Оставьте 0/0, если местоположение не нужно.",
+"Searching...":"Ищем…",
+"No place found. Try another spelling, or type the numbers.":"Ничего не найдено. Попробуйте написать название иначе или введите координаты вручную.",
+"Pick the right place. The numbers are filled in and can still be edited. Save to keep them.":"Выберите нужное место из списка. Координаты подставлены, их можно поправить вручную. Чтобы они остались, сохраните настройки.",
+"Search failed (no internet in this browser?). Type the numbers instead.":"Поиск не удался (возможно, у браузера нет доступа в интернет). Введите координаты вручную.",
+"Dim or blank the screen on a nightly schedule":"Приглушать или гасить экран ночью по расписанию",
+"From":"С",
+"To":"До",
+"Night brightness:":"Яркость ночью:",
+"(0 = screen off)":"(0 — экран выключен)",
+'Needs internet once to set the clock over NTP. The timezone also applies to theme clocks. While the window is active it overrides the brightness and auto-brightness above, except when the sun schedule below is on: then its "When night mode is also on" choice decides. Times are local to the selected timezone; DST is handled automatically. After a reboot the schedule resumes once the clock re-syncs, so the screen may show normal brightness for a few seconds.':"Чтобы узнать время по NTP, часам нужно хотя бы один раз выйти в интернет. Часовой пояс действует и на темы-циферблаты. В заданные часы ночной режим заменяет яркость и автояркость, настроенные выше. Исключение — включённое расписание по солнцу: тогда всё решает его настройка «Если включён и ночной режим». Время указывается местное, для выбранного часового пояса; переход на летнее время учитывается автоматически. После перезагрузки расписание начинает работать, как только время синхронизируется, поэтому первые несколько секунд экран может светиться с обычной яркостью.",
+"Follow sunrise and sunset (needs the device location)":"Менять яркость по восходу и закату (нужно местоположение устройства)",
+"Lowest brightness:":"Минимальная яркость:",
+"Sunrise fade (minutes)":"Нарастание на восходе (мин)",
+"Sunset fade (minutes)":"Затухание на закате (мин)",
+"When night mode is also on":"Если включён и ночной режим",
+"Night mode first":"Приоритет у ночного режима",
+"Sun schedule first":"Приоритет у расписания по солнцу",
+"The darker of the two":"Меньшая яркость из двух",
+"The screen rises from the lowest to the normal brightness (the slider above) over the sunrise fade, and falls back over the sunset fade. Sunrise and sunset are worked out on the device. Replaces auto-brightness.":"На восходе яркость плавно поднимается от минимальной до обычной (ползунок «Яркость» выше) за время, заданное для восхода, а на закате так же плавно снижается. Время восхода и заката часы рассчитывают сами. Заменяет автояркость.",
+"Waiting for the clock (NTP)...":"Ждём синхронизации времени (NTP)…",
+"Set the device location above.":"Укажите выше местоположение устройства.",
+"{0} Brightness now: {1}%.":"{0} Яркость сейчас: {1}%.",
+"Today: {0}. Fades start at sunrise and at sunset.":"Сегодня: {0}. Яркость начинает меняться в момент восхода и заката.",
+// tickers
+"Live data (Stock 1 - Domestic / 국내주식)":"Текущие данные (Акции 1, внутренний рынок)",
+"Live data (Stock 2 - Overseas / 해외주식)":"Текущие данные (Акции 2, зарубежные)",
+"Refresh data now":"Обновить данные сейчас",
+"Refreshing...":"Обновляем…",
+"What the device holds right now for each ticker. Green is a good fetch, red means the last fetch failed and the device is retrying it on its own.":"Данные по каждому тикеру, которые сейчас есть у часов. Зелёный — данные получены, красный — последний запрос не удался, и часы сами повторяют его.",
+"What the device holds right now for Stock 2 tickers.":"Данные по тикерам «Акции 2», которые сейчас есть у часов.",
+"No tickers configured":"Тикеры не заданы",
+"error":"ошибка",
+"(retry {0}s)":"(повтор через {0} с)",
+"Rotation & data":"Смена тикеров и данные",
+"Show each ticker (s)":"Показывать тикер (с)",
+"Refresh data (s)":"Обновлять данные (с)",
+"Chart style (차트 종류)":"Вид графика",
+"Candlestick (봉차트)":"Свечи",
+"Line chart (선차트)":"Линия",
+"Chart timeframe":"Период графика",
+"1 min (1분)":"1 мин",
+"5 min (5분)":"5 мин",
+"30 min (30분)":"30 мин",
+"60 min (60분)":"60 мин",
+"1 day (1일)":"1 день",
+"5 days (5일)":"5 дней",
+"1 month (1달)":"1 месяц",
+"3 months (3달)":"3 месяца",
+"6 months (6달)":"6 месяцев",
+"1 year (1년)":"1 год",
+"Year to date":"С начала года",
+"Max":"Всё время",
+"1 day (1일봉)":"1 день",
+"1 week (주봉)":"1 неделя",
+"1 month (월봉)":"1 месяц",
+"1 year (연봉)":"1 год",
+"Chart points":"Точек на графике",
+"Change & % basis":"Изменение считать за",
+"1 day":"1 день",
+"Chart timeframe: the change, arrow, colors, and chart cover the same span, so they agree. Needs chart data (2+ points); without it the device falls back to the 1-day change. At 1 day it measures from the session's first data point, so overnight gaps are not counted. 1 day: the classic change vs the previous close, which can point the other way than a longer chart.":"«Период графика»: изменение цены, стрелка, цвета и график относятся к одному и тому же отрезку и не противоречат друг другу. Нужны данные графика (хотя бы 2 точки); без них часы показывают изменение за день. Для периода в 1 день отсчёт идёт от первой точки торговой сессии, так что ночной разрыв в цене не учитывается. «1 день»: привычное изменение к цене закрытия предыдущего дня; его направление может не совпадать с графиком за более долгий период.",
+"Chart timeframe: the change, arrow, colors, and chart cover the same span. 1 day: classic change vs previous close.":"«Период графика»: изменение, стрелка, цвета и график относятся к одному отрезку. «1 день»: привычное изменение к цене закрытия предыдущего дня.",
+"Webhook URL":"URL вебхука",
+"(only for tickers set to Webhook)":"(только для тикеров с источником Webhook)",
+"Color scheme":"Цвета роста и падения",
+"Green up / Red down":"Рост — зелёный, падение — красный",
+"Red up / Green down":"Рост — красный, падение — зелёный",
+"What to show":"Что показывать",
+"Name / symbol":"Название / тикер",
+"Price":"Цена",
+"Change & % change":"Изменение и изменение в %",
+"Sparkline chart":"Мини-график",
+"Timeframe label":"Подпись периода",
+'"Updated N s ago"':"«Обновлено N с назад»",
+"Rotation dots":"Точки-индикаторы страниц",
+"Position P/L & portfolio page":"Прибыль и убыток по позиции, страница портфеля",
+"Tickers (rotate on screen)":"Тикеры (сменяются на экране)",
+"Tickers (Stock 2 - rotate on screen)":"Тикеры (Акции 2, сменяются на экране)",
+"+ Add ticker":"+ Добавить тикер",
+"Max 8":"Не больше 8",
+"qty":"кол-во",
+"cost":"цена",
+"(국내)":"(Корея)",
+"(해외)":"(мир)",
+"Naver {0}":"Naver {0}",
+"{0} Name is optional; if set it overrides the source's name. Qty and per-unit cost are optional too.":"{0} Название можно не указывать; если оно задано, то заменяет название из источника. Количество и цену покупки за штуку тоже указывать необязательно.",
+"<b>Naver Finance (미국/해외 주식 실시간)</b>: 네이버 미국 종목코드(예: <code>NVDA.O</code> 엔비디아, <code>SOXX.O</code> 필라델피아반도체, <code>SPY</code> S&amp;P500, <code>TSM</code>, <code>AAPL.O</code>)를 입력하세요. 정규장은 물론 <b>프리마켓/애프터마켓</b> 실시간 거래가 및 캔들 차트가 반영됩니다.":"<b>Naver Finance (акции США и других зарубежных рынков, в реальном времени)</b>: введите код бумаги, принятый в Naver (например, <code>NVDA.O</code> — NVIDIA, <code>SOXX.O</code> — фонд на индекс полупроводников, <code>SPY</code> — S&amp;P 500, <code>TSM</code>, <code>AAPL.O</code>). Цены и свечной график обновляются не только в основную сессию, но и на <b>премаркете и постмаркете</b>.",
+"<b>Naver Finance (한국 국내주식 실시간)</b>: 6자리 종목코드(예: <code>005930</code> 삼성전자, <code>000660</code> SK하이닉스, <code>122630</code> KODEX레버리지)를 입력하면 실시간 주가, 분봉 캔들 차트, 어제 종가선이 표시됩니다.":"<b>Naver Finance (корейские акции, в реальном времени)</b>: введите шестизначный код бумаги (например, <code>005930</code> — Samsung Electronics, <code>000660</code> — SK Hynix, <code>122630</code> — KODEX Leverage). Часы покажут текущую цену, минутный свечной график и линию вчерашнего закрытия.",
+"<b>cash.ch</b>: fetched directly by the device. The symbol is a listing key like <code>123456789-246-333</code>; the finder below turns a cash.ch link, ISIN, or name into one.":"<b>cash.ch</b>: часы запрашивают данные напрямую. Тикером служит ключ листинга вида <code>123456789-246-333</code>; получить его из ссылки cash.ch, ISIN или названия поможет поиск ниже.",
+"{0} <b>On this ESP8266</b>, cash.ch's TLS is tight on this chip — if it proves unstable, use the <b>GitHub</b> source for the same listing key instead. The ESP32 boards fetch cash.ch directly.":"{0} <b>На ESP8266</b> для TLS-соединения с cash.ch едва хватает памяти: если данные приходят нестабильно, выберите для того же ключа листинга источник <b>GitHub</b>. Платы на ESP32 работают с cash.ch напрямую.",
+"<b>GitHub</b>: reads a listing key's quote from a small static JSON published to a repo's <code>data</code> branch.":"<b>GitHub</b>: котировка для ключа листинга берётся из небольшого статического JSON-файла, опубликованного в ветке <code>data</code> репозитория.",
+"<b>Webhook</b>: the device asks the webhook URL above and passes the symbol through as-is.":"<b>Webhook</b>: часы обращаются по указанному выше URL вебхука и передают тикер без изменений.",
+"<b>Yahoo Finance</b>: fetched directly by the device. Use Yahoo symbols: <code>AAPL</code>, <code>TSLA</code>, <code>BTC-USD</code>.":"<b>Yahoo Finance</b>: часы запрашивают данные напрямую. Указывайте тикеры в формате Yahoo: <code>AAPL</code>, <code>TSLA</code>, <code>BTC-USD</code>.",
+"cash.ch symbol finder":"Поиск тикера на cash.ch",
+"Instrument":"Инструмент",
+"(paste a cash.ch link, ISIN, valor, or a name)":"(вставьте ссылку cash.ch, ISIN, номер валора или название)",
+"https://www.cash.ch/... or EU0009654078":"https://www.cash.ch/... или EU0009654078",
+"Find":"Найти",
+"Searches cash.ch from your browser and turns the result into the listing key the ticker needs. Click a match to add it as a ticker.":"Ищет на cash.ch прямо из вашего браузера и превращает результат в ключ листинга, который нужен тикеру. Нажмите на найденный инструмент, чтобы добавить его в тикеры.",
+"Paste a link, ISIN, or name first":"Сначала вставьте ссылку, ISIN или название",
+"Searching cash.ch...":"Ищем на cash.ch…",
+"Nothing found on cash.ch":"На cash.ch ничего не найдено",
+"cash.ch not reachable from this browser":"Из этого браузера cash.ch недоступен",
+"Added {0}. Set a name, then Save.":"Добавлено: {0}. Укажите название и сохраните настройки.",
+// weather
+"Weather Data Refresh (날씨 데이터 갱신 주기)":"Обновление данных о погоде",
+"Refresh weather every (날씨 데이터 갱신 주기, 분)":"Обновлять погоду каждые (мин)",
+"wttr.in에서 실시간 날씨 데이터를 가져오는 주기(분 단위, 기본 10분)입니다.":"Как часто запрашивать текущую погоду у wttr.in (в минутах, по умолчанию 10).",
+"Weather Location (날씨 위치 설정)":"Место для прогноза погоды",
+"Location coordinates":"Координаты",
+"Latitude (위도)":"Широта",
+"Longitude (경도)":"Долгота",
+"Search a city (e.g. Seoul, Busan, Tokyo)":"Найти город (например, Москва, Сеул, Токио)",
+"Select a place...":"Выберите место…",
+"Location search failed":"Не удалось выполнить поиск",
+"Apply to Clock & Weather":"Применить для времени и погоды",
+"Open-Meteo API를 사용하여 실시간 날씨 및 일일 최저/최고 기온, 습도, 풍속을 가져옵니다. 기본값은 서울(37.566, 126.9784)입니다.":"Текущая погода, минимальная и максимальная температура за день, влажность и скорость ветра берутся из Open-Meteo API. По умолчанию выбран Сеул (37.566, 126.9784).",
+"Quick Presets (빠른 지역 선택)":"Быстрый выбор города",
+"서울 (Seoul)":"Сеул",
+"부산 (Busan)":"Пусан",
+"인천 (Incheon)":"Инчхон",
+"대구 (Daegu)":"Тэгу",
+"대전 (Daejeon)":"Тэджон",
+"제주 (Jeju)":"Чеджу",
+"Seoul":"Сеул",
+"Busan":"Пусан",
+"Incheon":"Инчхон",
+"Daegu":"Тэгу",
+"Daejeon":"Тэджон",
+"Jeju":"Чеджу",
+"Chosen location":"указанное место",
+'Selected {0} ({1}, {2}). Click "Save settings" to save.':"Выбрано: {0} ({1}, {2}). Чтобы сохранить, нажмите «Сохранить настройки».",
+'Location synced. Click "Save settings" below to apply and reboot.':"Координаты перенесены в настройки времени. Чтобы применить их, нажмите ниже «Сохранить настройки»: часы перезагрузятся.",
+// system
+"Update from GitHub":"Обновление с GitHub",
+"Installed:":"Установлена:",
+"Check for latest":"Проверить обновления",
+"Update now":"Обновить сейчас",
+"Pulls the newest release straight from <a>the GitHub repo</a>. If it fails, use the manual upload below.":"Загружает последний релиз прямо из <a>репозитория на GitHub</a>. Если обновить не получилось, загрузите прошивку вручную ниже.",
+"Last update: {0}":"Последнее обновление: {0}",
+"Checking GitHub...":"Проверяем GitHub…",
+"Check failed: {0}":"Не удалось проверить: {0}",
+"unknown":"неизвестная ошибка",
+"Check failed":"Не удалось проверить обновления",
+"Version <b>{0}</b> is available (installed {1}).":"Доступна версия <b>{0}</b> (установлена {1}).",
+"Up to date ({0}).":"Установлена последняя версия ({0}).",
+"Download and flash the latest release from GitHub? The device reboots if it succeeds.":"Скачать и установить последний релиз с GitHub? После успешного обновления часы перезагрузятся.",
+"Downloading and flashing... this can take a couple of minutes and the device may reboot twice.":"Скачиваем и устанавливаем прошивку… Это может занять пару минут, часы могут перезагрузиться дважды.",
+"Updated to {0}.":"Обновлено до версии {0}.",
+"Update failed: {0}":"Не удалось обновить: {0}",
+"Could not start update":"Не удалось запустить обновление",
+"Manual update (OTA)":"Обновление вручную (OTA)",
+"Upload & flash":"Загрузить и прошить",
+"Upload a firmware.bin from the <a>releases page</a> or a local build. The device reboots when done.":"Загрузите файл firmware.bin со <a>страницы релизов</a> или собранный самостоятельно. После прошивки часы перезагрузятся.",
+"Pick a .bin first":"Сначала выберите файл .bin",
+"Uploading {0}%":"Загрузка: {0}%",
+"Done. Rebooting...":"Готово. Часы перезагружаются…",
+"Failed: {0}":"Ошибка: {0}",
+"Upload error":"Ошибка загрузки",
+"Settings backup":"Резервная копия настроек",
+"Export settings":"Экспорт настроек",
+"Import & reboot":"Импортировать и перезагрузить",
+"The export is the device's <code>config.json</code>, including WiFi passwords and the WireGuard private key in clear text; treat the file accordingly. Import applies everything and reboots.":"Экспорт — это файл <code>config.json</code> с устройства. В нём открытым текстом записаны пароли Wi-Fi и закрытый ключ WireGuard, так что храните его соответственно. Импорт применяет все настройки из файла и перезагружает часы.",
+"Pick a config .json first":"Сначала выберите файл настроек .json",
+"Not valid JSON":"Файл не является корректным JSON",
+"Apply this configuration and reboot?":"Применить эти настройки и перезагрузить часы?",
+"Imported, rebooting...":"Настройки импортированы, часы перезагружаются…",
+"Import failed":"Не удалось импортировать настройки",
+"Password":"Пароль",
+"Username":"Имя пользователя",
+"Password again":"Пароль ещё раз",
+"set a password":"задайте пароль",
+"type it again":"повторите пароль",
+"Remove password":"Убрать пароль",
+"A password is set: this page asks for it.":"Пароль задан: страница запрашивает его при входе.",
+"No password is set: anyone on your network can open this page.":"Пароль не задан: эту страницу может открыть любой, кто подключён к вашей сети.",
+"The two passwords are not the same. Nothing was saved.":"Пароли не совпадают. Ничего не сохранено.",
+"Remove the password? Anyone on your network will be able to open this page.":"Убрать пароль? Страницу сможет открыть любой, кто подключён к вашей сети.",
+"Password removed: the page is open again":"Пароль убран: страница снова открыта для всех",
+"Could not remove the password: {0}":"Не удалось убрать пароль: {0}",
+'Off by default, which leaves the page open to anyone on your network. A saved password locks it: the settings page, the API, and the firmware upload then sit behind HTTP digest auth, so the password itself is never sent over the wire. Type the new password twice; if the two fields differ, nothing is saved. Leave both blank to keep the stored password. "Remove password" opens the page again. The clawdmeter daemon\'s push endpoint stays open, because it has no way to send a password and it only writes the numbers on the screen. <b>There is no password recovery.</b> Forget it and the only way back in is to reflash the device over USB or the UART header, so write it down before you save.':"По умолчанию пароля нет, и страница открыта для всех в вашей сети. Сохранённый пароль закрывает доступ: страница настроек, API и загрузка прошивки защищены дайджест-аутентификацией HTTP, поэтому сам пароль по сети не передаётся. Введите новый пароль дважды; если поля не совпадают, ничего не сохранится. Оставьте оба поля пустыми, чтобы пароль остался прежним. Кнопка «Убрать пароль» снова открывает страницу для всех. Адрес, на который демон clawdmeter присылает данные, остаётся открытым: передать пароль демон не может, а меняются через этот адрес только цифры на экране. <b>Восстановить пароль нельзя.</b> Если вы его забудете, вернуть доступ можно будет только перепрошивкой часов через USB или контакты UART, поэтому запишите пароль, прежде чем сохранять.",
+"Maintenance":"Обслуживание",
+"Reboot":"Перезагрузить",
+"Factory reset":"Сброс к заводским настройкам",
+"Reboot device?":"Перезагрузить часы?",
+"Rebooting...":"Перезагрузка…",
+"Erase ALL settings and reboot?":"Стереть ВСЕ настройки и перезагрузить часы?",
+"Reset, rebooting...":"Настройки сброшены, часы перезагружаются…"
+};
+// i18n dict end
+var LANG='en',TPL=[];
+Object.keys(RU).forEach(function(k){if(/\{\d\}/.test(k))TPL.push([new RegExp('^'+k.replace(/[.*+?^$()|[\]\\]/g,'\\$&').replace(/\{\d\}/g,'(.+?)')+'$'),RU[k],k])});
+// A key (spaces already collapsed) -> Russian, or the key itself.
+function tk(k){
+ if(Object.prototype.hasOwnProperty.call(RU,k)&&!/\{\d\}/.test(k))return RU[k];
+ // durations the code prints: "3d 2h 5m", "7m", "45s"
+ var x=/^(?:(\d+)d )?(?:(\d+)h )?(\d+)m$/.exec(k); if(x)return (x[1]?x[1]+' д ':'')+(x[2]?x[2]+' ч ':'')+x[3]+' мин';
+ x=/^(\d+)s$/.exec(k); if(x)return x[1]+' с';
+ for(var i=0;i<TPL.length;i++){x=TPL[i][0].exec(k); if(x){
+  var ord=TPL[i][2].match(/\{\d\}/g),got={}; ord.forEach(function(p,n){got[p]=t(x[n+1])});
+  return TPL[i][1].replace(/\{\d\}/g,function(p){return got[p]})}}
+ return k}
+// Any text -> the language in use. The spaces around it are kept.
+function t(s){s=''+s; if(LANG!=='ru'||!/[A-Za-z가-힣]/.test(s))return s;
+ var m=/^(\s*)([\s\S]*?)(\s*)$/.exec(s),k=m[2].replace(/\s+/g,' '),r=tk(k);
+ return r===k?s:m[1]+r+m[3]}
+function i18nHtml(e){return e.innerHTML.replace(/<a [^>]*>/g,'<a>').replace(/\s+/g,' ').trim()}
+// Replace the content, but keep the link elements that are there: the code
+// holds on to them by id and rewrites their href.
+function i18nSet(e,h){var old=e.querySelectorAll('a'),i=0; e.innerHTML=h;
+ e.querySelectorAll('a').forEach(function(n){var o=old[i++]; if(o){o.textContent=n.textContent;n.parentNode.replaceChild(o,n)}})}
+var I18N_ATTR=['placeholder','title'];
+// Translate a node and what is under it. _e is the English that was there,
+// _r the Russian put in its place: text that is no longer _r was written by
+// the code since, and is new English.
+function i18nRu(n){
+ if(n.nodeType===3){var v=n.nodeValue; if(n._r===v)return;
+  var r=t(v); if(r!==v){n._e=v;n._r=r;n.nodeValue=r}else n._e=n._r=undefined;
+  return}
+ if(n.nodeType!==1||n.tagName==='SCRIPT'||n.tagName==='STYLE')return;
+ I18N_ATTR.forEach(function(a){var v=n.getAttribute(a); if(!v)return;
+  var s=n._a&&n._a[a]; if(s&&s[1]===v)return;
+  var r=t(v); if(r!==v){(n._a=n._a||{})[a]=[v,r];n.setAttribute(a,r)}else if(s)delete n._a[a]});
+ if(n.children.length&&!n.querySelector(':not(b):not(code):not(a)')){
+  var h=i18nHtml(n); if(n._r===h)return;
+  var raw=n.innerHTML,r2=t(h); if(r2!==h){i18nSet(n,r2);n._e=raw;n._r=i18nHtml(n);return}}
+ n._e=n._r=undefined;
+ for(var c=n.firstChild;c;c=c.nextSibling)i18nRu(c)}
+// Put the English back.
+function i18nEn(n){
+ if(n.nodeType===3){if(n._e!=null&&n.nodeValue===n._r)n.nodeValue=n._e; n._e=n._r=undefined; return}
+ if(n.nodeType!==1)return;
+ if(n._a){I18N_ATTR.forEach(function(a){var s=n._a[a]; if(s&&n.getAttribute(a)===s[1])n.setAttribute(a,s[0])}); n._a=undefined}
+ if(n._e!=null){var e=n._e,same=i18nHtml(n)===n._r; n._e=n._r=undefined; if(same){i18nSet(n,e);return}}
+ for(var c=n.firstChild;c;c=c.nextSibling)i18nEn(c)}
+function setLang(l){LANG=(l==='ru')?'ru':'en'; document.documentElement.lang=LANG;
+ try{localStorage.setItem('lang',LANG)}catch(e){}
+ (LANG==='ru'?i18nRu:i18nEn)(document.body)}
+// Whatever the code writes into the page later goes through the same lookup.
+new MutationObserver(function(recs){if(LANG!=='ru')return;
+ recs.forEach(function(m){var n=m.target;
+  for(var p=n.parentNode;p&&p!==document.body;p=p.parentNode)if(p.nodeType===1&&p._r!=null)n=p;
+  i18nRu(n)})
+}).observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:I18N_ATTR});
+(function(){var ask=window.confirm; window.confirm=function(m){return ask.call(window,t(m))}})();
+// The language of the last visit, so a Russian page does not start in English.
+// The device's own setting replaces it as soon as the config has loaded.
+try{if(localStorage.getItem('lang')==='ru'){sv('lang','ru');setLang('ru')}}catch(e){}
+// i18n end
 </script>
 </body></html>

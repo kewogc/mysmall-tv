@@ -37,7 +37,19 @@ void         gfxSetRotation(uint8_t r);
 void         gfxApplyColors(const Settings& s);
 Arduino_GFX* gfxDev();                 // shared draw target for feature renderers
 
+// ---- Language --------------------------------------------------------------
+// The device language (settings: clock.lang, "en" or "ru") for the text the
+// firmware itself puts on the screen. TR() picks the string; the Russian one is
+// a plain UTF-8 literal.
+void gfxSetLang(const char* code);
+bool gfxLangRu();
+#define TR(en, ru) (gfxLangRu() ? (ru) : (en))
+
 // ---- Text helpers (built-in 6x8 font, integer scaled) ---------------------
+// The font has Russian letters (features/theme/FontCyr866.h). Text may hold
+// them as UTF-8, as in a string literal, or as one CP866 byte each (Text866.h); print() through
+// gfxDev() draws both. gfxTextW() counts character cells, not bytes: use it
+// instead of strlen() for anything that may be Russian.
 #define GFX_FONT_W 6
 #define GFX_FONT_H 8
 

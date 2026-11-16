@@ -6,6 +6,7 @@
 #include "ThemeDataClient.h"
 #include <Arduino_GFX_Library.h>
 #include <font/glcdfont.h>
+#include "FontCyr866.h"
 #include <algorithm>
 
 ThemeMode g_themeMode;
@@ -18,7 +19,7 @@ namespace {
 class Panel : public smalltv::Display {
  public:
   uint8_t glyphColumn(uint8_t c, uint8_t col) const override {
-    return pgm_read_byte(font + unsigned(c) * 5 + col);
+    return smalltv::fontColumn866(font, c, col);   // Russian letters from our table
   }
   void row(int x, int y, const uint16_t* pixels, int count) override {
     uint16_t tinted[240];
@@ -172,7 +173,7 @@ void ThemeMode::service(const Settings& s) {
   }
   if (!package_) {
     if (!messageDrawn_) {
-      gfxMessage("THEMES", error_.c_str(), C_WHITE);
+      gfxMessage(TR("THEMES", "ТЕМЫ"), error_.c_str(), C_WHITE);
       messageDrawn_ = true;
     }
     return;

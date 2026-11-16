@@ -3,6 +3,7 @@
 #include "ThemePackage.h"
 #include <ArduinoJson.h>
 #include <font/glcdfont.h>
+#include "FontCyr866.h"
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -29,7 +30,7 @@ class Disk : public smalltv::Source {
 };
 class Screen : public smalltv::Display {
  public:
-  uint8_t glyphColumn(uint8_t c,uint8_t col) const override {return font[unsigned(c)*5+col];}
+  uint8_t glyphColumn(uint8_t c,uint8_t col) const override {return smalltv::fontColumn866(font,c,col);}
   void row(int x,int y,const uint16_t* pixels,int count) override {
     std::copy(pixels,pixels+count,pixels_+y*240+x);
   }

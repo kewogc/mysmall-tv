@@ -3,6 +3,7 @@
 #include <cassert>
 #include <iostream>
 #include <font/glcdfont.h>
+#include "FontCyr866.h"
 using namespace smalltv;
 struct Disk : Source {
  std::ifstream file;uint32_t length;
@@ -12,7 +13,7 @@ struct Disk : Source {
 };
 struct Screen : Display {
  uint16_t pixels[240*240]{};
- uint8_t glyphColumn(uint8_t c,uint8_t col) const override {return font[c*5+col];}
+ uint8_t glyphColumn(uint8_t c,uint8_t col) const override {return smalltv::fontColumn866(font,c,col);}
  void row(int x,int y,const uint16_t* colors,int n) override {for(int i=0;i<n;++i)pixels[y*240+x+i]=colors[i];}
 };
 int main(int argc,char** argv) {
