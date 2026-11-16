@@ -4,7 +4,8 @@
 #include "CiParse.h"
 #include <HTTPClient.h>
 #include <LittleFS.h>
-#include <PNGdec.h>
+#include <miniz.h>   // tinfl: the inflater in the ESP32's ROM
+#include "PngRows.h"
 #include <atomic>
 #include <memory>
 
@@ -15,7 +16,7 @@ namespace {
 const uint32_t kHttpTimeoutMs  = 8000;
 const int      kMaxReplyBytes  = 48 * 1024;   // a list of builds; each brings its commit message
 const int      kMaxAvatarBytes = 400 * 1024;  // the picture as the server sends it
-const uint32_t kMinFreeHeap    = 60000;       // a TLS session plus the PNG decoder
+const uint32_t kMinFreeHeap    = 70000;       // a TLS session, then the PNG decoder
 const size_t   kTaskStack      = 12288;
 const char     kDir[]          = "/ci";
 
@@ -103,13 +104,11 @@ void setError(Job& job, const char* what, int code) {
 // The picture is averaged down, not sampled: a 290-pixel avatar at 96 pixels
 // would otherwise lose two rows and columns in three.
 struct Scaler {
-  PNG*      png;
-  uint16_t* out;                      // CI_AVATAR_BIG squared
-  int       width, height;
-  int       row;                      // destination row being gathered, -1 at the start
+  uint16_t* out = nullptr;            // CI_AVATAR_BIG squared
+  uint32_t  width = 0, height = 0;
+  int       row = -1;                 // destination row being gathered
   uint32_t  r[CI_AVATAR_BIG], g[CI_AVATAR_BIG], b[CI_AVATAR_BIG];
   uint16_t  n[CI_AVATAR_BIG];
-  uint16_t  line[320];
 
   void flush() {
     if (row < 0 || row >= CI_AVATAR_BIG) return;
@@ -119,82 +118,107 @@ struct Scaler {
       out[row * CI_AVATAR_BIG + x] = px;
     }
   }
+  void line(uint32_t y, const uint16_t* pixels) {
+    const int to = int(y * CI_AVATAR_BIG / height);
+    if (to != row) {
+      flush();
+      row = to;
+      memset(r, 0, sizeof(r));
+      memset(g, 0, sizeof(g));
+      memset(b, 0, sizeof(b));
+      memset(n, 0, sizeof(n));
+    }
+    for (uint32_t x = 0; x < width; ++x) {
+      const uint32_t col = x * CI_AVATAR_BIG / width;
+      const uint16_t px = pixels[x];
+      r[col] += px >> 11;
+      g[col] += (px >> 5) & 0x3F;
+      b[col] += px & 0x1F;
+      ++n[col];
+    }
+  }
 };
 
-void* pngOpen(const char* name, int32_t* size) {
-  File* f = new File(LittleFS.open(name, "r"));
-  if (!*f) { delete f; return nullptr; }
-  *size = int32_t(f->size());
-  return f;
-}
-void pngClose(void* handle) {
-  File* f = static_cast<File*>(handle);
-  f->close();
-  delete f;
-}
-int32_t pngRead(PNGFILE* file, uint8_t* buffer, int32_t length) {
-  File* f = static_cast<File*>(file->fHandle);
-  int32_t n = int32_t(f->read(buffer, size_t(length)));
-  file->iPos = int32_t(f->position());
-  return n;
-}
-int32_t pngSeek(PNGFILE* file, int32_t position) {
-  File* f = static_cast<File*>(file->fHandle);
-  f->seek(uint32_t(position));
-  file->iPos = position;
-  return position;
-}
-int pngDraw(PNGDRAW* draw) {
-  Scaler* s = static_cast<Scaler*>(draw->pUser);
-  const int row = draw->y * CI_AVATAR_BIG / s->height;
-  if (row != s->row) {
-    s->flush();
-    s->row = row;
-    memset(s->r, 0, sizeof(s->r));
-    memset(s->g, 0, sizeof(s->g));
-    memset(s->b, 0, sizeof(s->b));
-    memset(s->n, 0, sizeof(s->n));
-  }
-  // A transparent picture is laid over black, the screen's background.
-  s->png->getLineAsRGB565(draw, s->line, PNG_RGB565_LITTLE_ENDIAN, 0x000000);
-  for (int x = 0; x < s->width; ++x) {
-    const int col = x * CI_AVATAR_BIG / s->width;
-    const uint16_t px = s->line[x];
-    s->r[col] += px >> 11;
-    s->g[col] += (px >> 5) & 0x3F;
-    s->b[col] += px & 0x1F;
-    ++s->n[col];
-  }
-  if ((draw->y & 31) == 31) delay(1);   // let the other tasks in
-  return 1;
+uint32_t be32(const uint8_t* p) {
+  return (uint32_t(p[0]) << 24) | (uint32_t(p[1]) << 16) | (uint32_t(p[2]) << 8) | p[3];
 }
 
+// Reads the PNG at `pngPath` chunk by chunk, inflates its pixel data with the
+// inflater in the ESP32's ROM and writes the scaled picture to `outPath`.
+// About 60 KB of heap while it runs: the inflater's 32 KB window and state,
+// the row decoder, the result.
 bool decodeAvatar(const char* pngPath, const String& outPath) {
-  std::unique_ptr<PNG> png(new (std::nothrow) PNG());            // about 45 KB
+  const size_t outBytes = CI_AVATAR_BIG * CI_AVATAR_BIG * 2;
+  std::unique_ptr<PngRows> rows(new (std::nothrow) PngRows());
   std::unique_ptr<Scaler> scaler(new (std::nothrow) Scaler());
+  std::unique_ptr<tinfl_decompressor> inflater(new (std::nothrow) tinfl_decompressor());
+  std::unique_ptr<uint8_t[]> window(new (std::nothrow) uint8_t[TINFL_LZ_DICT_SIZE]);
   std::unique_ptr<uint16_t[]> out(new (std::nothrow) uint16_t[CI_AVATAR_BIG * CI_AVATAR_BIG]);
-  if (!png || !scaler || !out) return false;
-  if (png->open(pngPath, pngOpen, pngClose, pngRead, pngSeek, pngDraw) != PNG_SUCCESS) return false;
-  bool ok = false;
-  const int w = png->getWidth(), h = png->getHeight();
-  // The decoder's line buffer holds 320 pixels; a larger picture cannot be read.
-  if (w >= 1 && w <= 320 && h >= 1 && h <= 2048) {
-    memset(out.get(), 0, CI_AVATAR_BIG * CI_AVATAR_BIG * 2);
-    scaler->png = png.get();
-    scaler->out = out.get();
-    scaler->width = w;
-    scaler->height = h;
-    scaler->row = -1;
-    ok = png->decode(scaler.get(), 0) == PNG_SUCCESS;
-    scaler->flush();
-  }
-  png->close();
-  if (!ok) return false;
-  File f = LittleFS.open(outPath, "w");
+  if (!rows || !scaler || !inflater || !window || !out) return false;
+  memset(out.get(), 0, outBytes);
+  scaler->out = out.get();
+  tinfl_init(inflater.get());
+
+  File f = LittleFS.open(pngPath, "r");
   if (!f) return false;
-  const size_t bytes = CI_AVATAR_BIG * CI_AVATAR_BIG * 2;
-  const bool written = f.write(reinterpret_cast<const uint8_t*>(out.get()), bytes) == bytes;
+  uint8_t head[8];
+  static const uint8_t signature[8] = {0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'};
+  if (f.read(head, 8) != 8 || memcmp(head, signature, 8)) return false;
+
+  bool header = false, complete = false, failed = false;
+  size_t windowAt = 0;
+  uint32_t turns = 0;
+  while (!complete && !failed && f.read(head, 8) == 8) {
+    uint32_t length = be32(head);
+    if (!memcmp(head + 4, "IHDR", 4)) {
+      uint8_t ihdr[13];
+      if (length != 13 || f.read(ihdr, 13) != 13 || !rows->begin(ihdr)) { failed = true; break; }
+      header = true;
+      scaler->width = rows->width();
+      scaler->height = rows->height();
+      length = 0;
+    } else if (!memcmp(head + 4, "PLTE", 4) && header) {
+      uint8_t palette[256 * 3];
+      const size_t take = length < sizeof(palette) ? length : sizeof(palette);
+      if (f.read(palette, take) != take) { failed = true; break; }
+      rows->palette(palette, take);
+      length -= uint32_t(take);
+    } else if (!memcmp(head + 4, "IDAT", 4) && header) {
+      uint8_t in[1024];
+      while (length && !complete && !failed) {
+        size_t have = length < sizeof(in) ? length : sizeof(in);
+        if (f.read(in, have) != have) { failed = true; break; }
+        length -= uint32_t(have);
+        const uint8_t* next = in;
+        tinfl_status status;
+        do {
+          size_t inBytes = have, outSize = TINFL_LZ_DICT_SIZE - windowAt;
+          status = tinfl_decompress(inflater.get(), next, &inBytes, window.get(), window.get() + windowAt, &outSize,
+                                    TINFL_FLAG_PARSE_ZLIB_HEADER | TINFL_FLAG_HAS_MORE_INPUT);
+          next += inBytes;
+          have -= inBytes;
+          if (outSize && !rows->feed(window.get() + windowAt, outSize,
+                                     [&](uint32_t y, const uint16_t* line) { scaler->line(y, line); })) failed = true;
+          windowAt = (windowAt + outSize) & (TINFL_LZ_DICT_SIZE - 1);
+          if (status < TINFL_STATUS_DONE) failed = true;
+          if (status == TINFL_STATUS_DONE) complete = true;
+          if ((++turns & 15) == 0) delay(1);   // let the other tasks in
+        } while (!failed && !complete && (have || status == TINFL_STATUS_HAS_MORE_OUTPUT));
+      }
+    } else if (!memcmp(head + 4, "IEND", 4)) {
+      break;
+    }
+    if (failed) break;
+    if (!f.seek(f.position() + length + 4)) break;   // the rest of the chunk and its checksum
+  }
   f.close();
+  if (failed || !header || !rows->done()) return false;
+  scaler->flush();
+
+  File o = LittleFS.open(outPath, "w");
+  if (!o) return false;
+  const bool written = o.write(reinterpret_cast<const uint8_t*>(out.get()), outBytes) == outBytes;
+  o.close();
   if (!written) LittleFS.remove(outPath);
   return written;
 }
@@ -341,6 +365,23 @@ bool     g_demo = false;
 uint32_t g_demoStart = 0;
 int      g_demoStage = -1;
 char     g_demoAvatar[sizeof(CiBuild::avatar)] = {0};
+bool     g_demoAvatarWanted = false;
+
+void pollTask(void* arg);
+// Fetch the demo's picture in the background.
+void startDemoAvatar() {
+  g_demoAvatarWanted = false;
+  Job* job = new (std::nothrow) Job();
+  if (!job) return;
+  job->avatarOnly = true;
+  job->avatarUrl = g_demoAvatar;
+  job->generation = g_generation;
+  if (xTaskCreate(pollTask, "ci-poll", kTaskStack, job, 1, nullptr) != pdPASS) {
+    delete job;
+    return;
+  }
+  g_busy = true;
+}
 
 CiBuild demoBuild(uint32_t id, const char* repo, const char* ref, const char* author, const char* step,
                   uint8_t done, uint8_t total, CiStatus status) {
@@ -418,20 +459,10 @@ void ciStartDemo(const char* avatarUrl) {
   g_demoStart = millis();
   g_demoStage = -1;
   ciText(g_demoAvatar, avatarUrl ? avatarUrl : "");
-  // The picture, unless it is in flash already. It arrives a few seconds into
-  // the demo and the screen repaints with it.
-  if (!g_demoAvatar[0] || g_busy || WiFi.status() != WL_CONNECTED) return;
-  if (LittleFS.exists(avatarPath(urlHash(g_demoAvatar)))) return;
-  Job* job = new (std::nothrow) Job();
-  if (!job) return;
-  job->avatarOnly = true;
-  job->avatarUrl = g_demoAvatar;
-  job->generation = g_generation;
-  if (xTaskCreate(pollTask, "ci-poll", kTaskStack, job, 1, nullptr) != pdPASS) {
-    delete job;
-    return;
-  }
-  g_busy = true;
+  // The picture, unless it is in flash already: ciService() fetches it as soon
+  // as no poll is in the air. It arrives a few seconds into the demo and the
+  // screen repaints with it.
+  g_demoAvatarWanted = g_demoAvatar[0] && !LittleFS.exists(avatarPath(urlHash(g_demoAvatar)));
 }
 
 void ciService(const Settings& s) {
@@ -453,7 +484,11 @@ void ciService(const Settings& s) {
     delete job;
   }
 
-  if (g_demo) { demoService(); return; }
+  if (g_demo) {
+    if (g_demoAvatarWanted && !g_busy && WiFi.status() == WL_CONNECTED) startDemoAvatar();
+    demoService();
+    return;
+  }
 
   if (!s.ci.enabled || !s.ci.url.length() || !s.ci.token.length()) {
     if (g_tracker.rows() || g_tracker.view(millis()) != CiTracker::IDLE) g_tracker.clear();
@@ -489,6 +524,11 @@ CiState ciState(const Settings& s) {
   memcpy(st.error, g_error, sizeof(st.error));
   st.lastPollSec = g_polled ? (millis() - g_lastDoneMs) / 1000 : 0;
   st.running = uint8_t(g_tracker.rows());
+  st.avatars = 0;
+  File dir = LittleFS.open(kDir);
+  if (dir && dir.isDirectory())
+    for (File f = dir.openNextFile(); f; f = dir.openNextFile())
+      if (String(f.name()).endsWith(".565") && st.avatars < 255) ++st.avatars;
   return st;
 }
 

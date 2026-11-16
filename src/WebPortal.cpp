@@ -542,6 +542,7 @@ static void handleCiState() {
   doc["error"] = st.error;
   doc["lastPollSec"] = st.lastPollSec;
   doc["running"] = st.running;
+  doc["avatars"] = st.avatars;
   String out;
   serializeJson(doc, out);
   server.send(200, "application/json", out);

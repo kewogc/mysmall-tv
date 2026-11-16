@@ -29,6 +29,7 @@ struct CiState {
   char     error[48];    // why it did not
   uint32_t lastPollSec;  // seconds since that poll came back
   uint8_t  running;      // builds in the list
+  uint8_t  avatars;      // pictures kept in flash
 };
 CiState ciState(const Settings& s);
 
