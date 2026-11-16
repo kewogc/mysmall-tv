@@ -10,10 +10,9 @@ const between=(a,b)=>{const i=html.indexOf(a),k=html.indexOf(b,i);assert.ok(i>=0
 const helpers=between('function $(id)','// sun begin');
 const feat=between('var MODEOPT=','function modeChanged()');
 const collectCode=between('function collect(){','function saveAll(){');
-const tickerVars=between('var T_TEXT=','// IANA -> POSIX');  // field lists collect() reads
 
-const FEATS=['ticker','usage','radar','ha','theme'];
-const BOX={ticker:'carouselTicker',usage:'carouselUsage',radar:'carouselRadar',ha:'carouselHa',theme:'carouselTheme'};
+const FEATS=['weather','usage','radar','ha','theme'];
+const BOX={weather:'carouselWeather',usage:'carouselUsage',radar:'carouselRadar',ha:'carouselHa',theme:'carouselTheme'};
 
 // A fake page: elements by id. A feature section holds its carousel box.
 function makePage(ticked){
@@ -29,32 +28,34 @@ function makePage(ticked){
  const document={getElementById:id=>els[id]||null,querySelector:()=>null,querySelectorAll:()=>[]};
  const ctx={document,C:{},parseInt,parseFloat,Object,collectWifi:()=>[],toast:()=>{}};
  vm.createContext(ctx);
- vm.runInContext(helpers+feat+tickerVars+collectCode,ctx);
+ vm.runInContext(helpers+feat+collectCode,ctx);
  return {ctx,els};
 }
 
 // Build with every feature: each flag is sent as ticked.
 {
- const ticked={ticker:true,usage:false,radar:true,ha:false,theme:true};
+ const ticked={weather:true,usage:false,radar:true,ha:false,theme:true};
  const {ctx}=makePage(ticked);
  const o=ctx.collect();
  for(const f of FEATS)assert.strictEqual(o[BOX[f]],ticked[f],'full build, '+BOX[f]);
- const flipped={ticker:false,usage:true,radar:false,ha:true,theme:false};
+ const flipped={weather:false,usage:true,radar:false,ha:true,theme:false};
  const p=makePage(flipped);
  const o2=p.ctx.collect();
  for(const f of FEATS)assert.strictEqual(o2[BOX[f]],flipped[f],'full build flipped, '+BOX[f]);
 }
 
-// Build without ha, radar, ticker, usage (as loadConfig hides them): those
-// four flags are not sent at all; the theme flag and the rest still are.
+// Build without ha, radar, usage (as loadConfig hides them): those three
+// flags are not sent at all; the weather and theme flags and the rest still are.
 {
- const {ctx,els}=makePage({ticker:true,usage:true,radar:true,ha:true,theme:true});
- for(const f of ['ticker','usage','radar','ha'])ctx.hideFeat(f);
- for(const f of ['ticker','usage','radar','ha'])assert.ok(!els[BOX[f]],BOX[f]+' box should be gone');
+ const {ctx,els}=makePage({weather:true,usage:true,radar:true,ha:true,theme:true});
+ for(const f of ['usage','radar','ha'])ctx.hideFeat(f);
+ for(const f of ['usage','radar','ha'])assert.ok(!els[BOX[f]],BOX[f]+' box should be gone');
  const o=ctx.collect();
- for(const f of ['ticker','usage','radar','ha'])
+ for(const f of ['usage','radar','ha'])
   assert.ok(!(BOX[f] in o),BOX[f]+' must not be sent, got '+o[BOX[f]]);
  assert.strictEqual(o.carouselTheme,true,'carouselTheme');
+ assert.strictEqual(o.carouselWeather,true,'carouselWeather');
+ assert.ok(!('carouselTicker' in o)&&!('carouselTicker2' in o),'the removed ticker flags are never sent');
  assert.strictEqual(o.carouselSec,45);
  assert.strictEqual(o.mode,'carousel');
  assert.strictEqual(o.hostname,'smalltv-test');
@@ -62,11 +63,11 @@ function makePage(ticked){
 
 // Build without the theme feature: only the theme flag is left out.
 {
- const {ctx}=makePage({ticker:true,usage:false,radar:true,ha:false,theme:true});
+ const {ctx}=makePage({weather:true,usage:false,radar:true,ha:false,theme:true});
  ctx.hideFeat('theme');
  const o=ctx.collect();
  assert.ok(!('carouselTheme' in o),'carouselTheme must not be sent');
- assert.strictEqual(o.carouselTicker,true);assert.strictEqual(o.carouselUsage,false);
+ assert.strictEqual(o.carouselWeather,true);assert.strictEqual(o.carouselUsage,false);
  assert.strictEqual(o.carouselRadar,true);assert.strictEqual(o.carouselHa,false);
 }
 console.log('carousel flag tests passed');

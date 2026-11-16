@@ -1,8 +1,8 @@
 // A save must not send a mode the page does not offer. A build without a
 // feature loses that feature's entry in the mode list (hideFeat). If the
 // device stored that mode, the list shows nothing selected, gv('mode') is ''
-// and collect() sent mode:'' -- which the firmware turned into the stock
-// ticker. This runs the page's own hideFeat() and collect() on a fake page
+// and collect() sent mode:'' -- which the firmware turned into its first
+// mode. This runs the page's own hideFeat() and collect() on a fake page
 // whose mode list behaves like a <select>.
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
@@ -12,9 +12,8 @@ const between=(a,b)=>{const i=html.indexOf(a),k=html.indexOf(b,i);assert.ok(i>=0
 const helpers=between('function $(id)','// sun begin');
 const feat=between('var MODEOPT=','function modeChanged()');
 const collectCode=between('function collect(){','function saveAll(){');
-const tickerVars=between('var T_TEXT=','// IANA -> POSIX');
 
-const OPTIONS=['stocks','usage','radar','ha','theme','carousel'];
+const OPTIONS=['weather','usage','radar','ha','theme','carousel'];
 
 // A <select>: setting a value with no matching option leaves nothing selected.
 function makeSelect(){
@@ -37,7 +36,7 @@ function makePage(){
   querySelectorAll:()=>[]};
  const ctx={document,C:{},parseInt,parseFloat,Object,collectWifi:()=>[],toast:()=>{}};
  vm.createContext(ctx);
- vm.runInContext(helpers+feat+tickerVars+collectCode,ctx);
+ vm.runInContext(helpers+feat+collectCode,ctx);
  return {ctx,els};
 }
 
@@ -50,7 +49,7 @@ for(const m of OPTIONS){
 
 // Lean build: the stored mode is a feature the build lacks. The page cannot
 // show it, so it sends no mode at all.
-for(const [feat,m] of [['radar','radar'],['usage','usage'],['ha','ha'],['ticker','stocks'],['theme','theme']]){
+for(const [feat,m] of [['radar','radar'],['usage','usage'],['ha','ha'],['weather','weather'],['theme','theme']]){
  const {ctx,els}=makePage();
  ctx.hideFeat(feat);
  els.mode.value=m;                       // what loadConfig does with the stored mode

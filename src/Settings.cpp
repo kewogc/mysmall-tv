@@ -10,127 +10,6 @@ static const char* CONFIG_PATH = "/config.json";
 static size_t g_storedSize = 0;
 
 // ===========================================================================
-// Ticker slice
-// ===========================================================================
-static const char* srcToStr(uint8_t s) {
-  return (s == SRC_NAVER) ? "naver"
-       : (s == SRC_YAHOO) ? "yahoo"
-       : (s == SRC_CASH)  ? "cash"
-       : (s == SRC_GHUB)  ? "github" : "webhook";
-}
-static uint8_t srcFromStr(const String& s) {
-  return s.equalsIgnoreCase("naver")  ? SRC_NAVER
-       : s.equalsIgnoreCase("yahoo")  ? SRC_YAHOO
-       : s.equalsIgnoreCase("cash")   ? SRC_CASH
-       : s.equalsIgnoreCase("github") ? SRC_GHUB : SRC_WEBHOOK;
-}
-
-void TickerSettings::setDefaults() {
-  webhookUrl = "";
-  range = DEFAULT_RANGE;
-  chartStyle = "candle";
-  points = DEFAULT_POINTS;
-  pollSec = DEFAULT_POLL_SEC;
-  rotateSec = DEFAULT_ROTATE_SEC;
-  colorInverted = false;
-  changeOnRange = true;
-
-  showName = true;
-  showPrice = true;
-  showChange = true;
-  showChart = true;
-  showRangeLabel = true;
-  showUpdatedAgo = false;
-  showPageDots = true;
-  showPortfolio = true;   // only visible once a symbol has qty+cost set
-
-  symbolCount = 0;
-  for (uint8_t i = 0; i < MAX_SYMBOLS; i++) {
-    symbols[i].symbol[0] = 0;
-    symbols[i].name[0] = 0;
-    symbols[i].source = DEFAULT_SOURCE;
-    symbols[i].qty = 0;
-    symbols[i].cost = 0;
-  }
-}
-
-void TickerSettings::toJson(JsonObject o) const {
-  o["webhookUrl"]     = webhookUrl;
-  o["range"]          = range;
-  o["chartStyle"]     = chartStyle;
-  o["points"]         = points;
-  o["pollSec"]        = pollSec;
-  o["rotateSec"]      = rotateSec;
-  o["colorInverted"]  = colorInverted;
-  o["changeOnRange"]  = changeOnRange;
-  o["showName"]       = showName;
-  o["showPrice"]      = showPrice;
-  o["showChange"]     = showChange;
-  o["showChart"]      = showChart;
-  o["showRangeLabel"] = showRangeLabel;
-  o["showUpdatedAgo"] = showUpdatedAgo;
-  o["showPageDots"]   = showPageDots;
-  o["showPortfolio"]  = showPortfolio;
-
-  JsonArray arr = o["symbols"].to<JsonArray>();
-  for (uint8_t i = 0; i < symbolCount; i++) {
-    JsonObject e = arr.add<JsonObject>();
-    e["symbol"] = symbols[i].symbol;
-    e["name"]   = symbols[i].name;
-    e["source"] = srcToStr(symbols[i].source);
-    e["qty"]    = symbols[i].qty;
-    e["cost"]   = symbols[i].cost;
-  }
-}
-
-void TickerSettings::fromJson(JsonObjectConst o) {
-  // Legacy (pre-2.4) configs carried one global "source"; it becomes the
-  // default for any symbol that doesn't carry its own.
-  uint8_t legacySrc = DEFAULT_SOURCE;
-  if (o["source"].is<const char*>()) legacySrc = srcFromStr(o["source"].as<String>());
-
-  if (o["webhookUrl"].is<const char*>()) webhookUrl = o["webhookUrl"].as<String>();
-  if (o["range"].is<const char*>())      range = o["range"].as<String>();
-  if (o["chartStyle"].is<const char*>()) chartStyle = o["chartStyle"].as<String>();
-  if (o["points"].is<int>())             points = constrain((int)o["points"], 0, MAX_SPARK_POINTS);
-  // Clamped at both ends: these land in a uint16_t, and the web UI's own
-  // min/max are only advisory (the page POSTs JSON, it does not submit a form).
-  if (o["pollSec"].is<int>())            pollSec = constrain((int)o["pollSec"], 10, 3600);
-  if (o["rotateSec"].is<int>())          rotateSec = constrain((int)o["rotateSec"], 2, 3600);
-  if (o["colorInverted"].is<bool>())     colorInverted = o["colorInverted"];
-  if (o["changeOnRange"].is<bool>())     changeOnRange = o["changeOnRange"];
-
-  if (o["showName"].is<bool>())       showName = o["showName"];
-  if (o["showPrice"].is<bool>())      showPrice = o["showPrice"];
-  if (o["showChange"].is<bool>())     showChange = o["showChange"];
-  if (o["showChart"].is<bool>())      showChart = o["showChart"];
-  if (o["showRangeLabel"].is<bool>()) showRangeLabel = o["showRangeLabel"];
-  if (o["showUpdatedAgo"].is<bool>()) showUpdatedAgo = o["showUpdatedAgo"];
-  if (o["showPageDots"].is<bool>())   showPageDots = o["showPageDots"];
-  if (o["showPortfolio"].is<bool>())  showPortfolio = o["showPortfolio"];
-
-  if (o["symbols"].is<JsonArrayConst>()) {
-    JsonArrayConst arr = o["symbols"].as<JsonArrayConst>();
-    symbolCount = 0;
-    for (JsonObjectConst e : arr) {
-      if (symbolCount >= MAX_SYMBOLS) break;
-      const char* sym = e["symbol"] | "";
-      if (!sym[0]) continue;                 // skip blank rows
-      SymbolCfg& dst = symbols[symbolCount];
-      strlcpy(dst.symbol, sym, MAX_SYMBOL_LEN);
-      strlcpy(dst.name, e["name"] | "", MAX_NAME_LEN);
-      dst.source = e["source"].is<const char*>()
-                     ? srcFromStr(e["source"].as<String>()) : legacySrc;
-      dst.qty  = e["qty"].as<float>();     // absent -> 0
-      dst.cost = e["cost"].as<float>();
-      if (dst.qty < 0)  dst.qty = 0;
-      if (dst.cost < 0) dst.cost = 0;
-      symbolCount++;
-    }
-  }
-}
-
-// ===========================================================================
 // Usage slice
 // ===========================================================================
 void UsageSettings::setDefaults() {
@@ -509,7 +388,7 @@ void Settings::setDefaults() {
   mode = DEFAULT_MODE;
   themeId = "";
   carouselSec = DEFAULT_CAROUSEL_SEC;
-  carouselTicker = carouselTicker2 = carouselUsage = carouselRadar = carouselHa = carouselWeather = true;
+  carouselUsage = carouselRadar = carouselHa = carouselWeather = true;
   carouselTheme = false;   // opt in: needs an installed theme, else the slot shows an error
   weatherPollMin = 10;
   httpTimeout = DEFAULT_HTTP_TIMEOUT;
@@ -519,8 +398,6 @@ void Settings::setDefaults() {
   backlightInverted = TFT_BL_DEFAULT_INVERTED;
   rotation = 0;
 
-  ticker.setDefaults();
-  ticker2.setDefaults();
   usage.setDefaults();
   radar.setDefaults();
   ha.setDefaults();
@@ -603,12 +480,8 @@ void settingsToJson(const Settings& s, JsonObject root, bool includeSecrets) {
                             : (s.mode == MODE_RADAR)    ? "radar"
                             : (s.mode == MODE_USAGE)    ? "usage"
                             : (s.mode == MODE_HA)       ? "ha"
-                            : (s.mode == MODE_STOCKS2)  ? "stocks2"
-                            : (s.mode == MODE_WEATHER)  ? "weather"
-                            : (s.mode == MODE_CAROUSEL) ? "carousel" : "stocks";
+                            : (s.mode == MODE_CAROUSEL) ? "carousel" : "weather";
   root["carouselSec"]       = s.carouselSec;
-  root["carouselTicker"]    = s.carouselTicker;
-  root["carouselTicker2"]   = s.carouselTicker2;
   root["carouselUsage"]     = s.carouselUsage;
   root["carouselRadar"]     = s.carouselRadar;
   root["carouselHa"]        = s.carouselHa;
@@ -622,8 +495,6 @@ void settingsToJson(const Settings& s, JsonObject root, bool includeSecrets) {
   root["rotation"]          = s.rotation;
 
   // Feature slices
-  s.ticker.toJson(root["ticker"].to<JsonObject>());
-  s.ticker2.toJson(root["ticker2"].to<JsonObject>());
   s.usage.toJson(root["usage"].to<JsonObject>());
   s.radar.toJson(root["radar"].to<JsonObject>());
   s.ha.toJson(root["ha"].to<JsonObject>(), includeSecrets);
@@ -686,8 +557,6 @@ void settingsApplyJson(Settings& s, JsonObjectConst root) {
            : m.equalsIgnoreCase("ha")       ? MODE_HA
            : m.equalsIgnoreCase("weather")  ? MODE_WEATHER
            : m.equalsIgnoreCase("carousel") ? MODE_CAROUSEL
-           : (m.equalsIgnoreCase("stocks2") || m.equalsIgnoreCase("stock2")) ? MODE_STOCKS2
-           : (m.equalsIgnoreCase("stocks") || m.equalsIgnoreCase("stock1"))  ? MODE_STOCKS
            : s.mode;   // empty or unknown: a save that names no mode keeps the stored one
   }
   if (root["themeId"].is<const char*>()) {
@@ -700,8 +569,6 @@ void settingsApplyJson(Settings& s, JsonObjectConst root) {
     if (valid) s.themeId = id;
   }
   if (root["carouselSec"].is<int>())      s.carouselSec = constrain((int)root["carouselSec"], 5, 3600);
-  if (root["carouselTicker"].is<bool>())  s.carouselTicker = root["carouselTicker"];
-  if (root["carouselTicker2"].is<bool>()) s.carouselTicker2 = root["carouselTicker2"];
   if (root["carouselUsage"].is<bool>())   s.carouselUsage = root["carouselUsage"];
   if (root["carouselRadar"].is<bool>())   s.carouselRadar = root["carouselRadar"];
   if (root["carouselHa"].is<bool>())      s.carouselHa = root["carouselHa"];
@@ -715,12 +582,9 @@ void settingsApplyJson(Settings& s, JsonObjectConst root) {
   if (root["backlightInverted"].is<bool>()) s.backlightInverted = root["backlightInverted"];
   if (root["rotation"].is<int>())           s.rotation = (uint8_t)(((int)root["rotation"]) & 3);
 
-  // Feature slices: prefer the nested object; fall back to the top level so a
+  // Usage slice: prefer the nested object; fall back to the top level so a
   // legacy flat config.json (or a legacy POST) still applies. The old shared
-  // "pollSec" thus seeds both ticker and usage cadence on first upgrade.
-  JsonObjectConst t = root["ticker"].is<JsonObjectConst>() ? root["ticker"].as<JsonObjectConst>() : root;
-  s.ticker.fromJson(t);
-  if (root["ticker2"].is<JsonObjectConst>()) s.ticker2.fromJson(root["ticker2"].as<JsonObjectConst>());
+  // "pollSec" thus seeds the usage cadence on first upgrade.
   JsonObjectConst u = root["usage"].is<JsonObjectConst>() ? root["usage"].as<JsonObjectConst>() : root;
   s.usage.fromJson(u);
   // Radar has no legacy flat layout; only apply when its nested object is present.

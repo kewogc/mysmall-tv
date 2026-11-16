@@ -55,8 +55,6 @@ small.hint{display:block;color:var(--mut);margin-top:4px;font-size:12px}
 <nav>
  <button data-t="status" class="active">Status</button>
  <button data-t="general">General</button>
- <button data-t="ticker">Stock 1 (Domestic)</button>
- <button data-t="ticker2">Stock 2 (Overseas)</button>
  <button data-t="weather">Weather</button>
  <button data-t="display">Display</button>
  <button data-t="wifi">WiFi</button>
@@ -73,16 +71,12 @@ small.hint{display:block;color:var(--mut);margin-top:4px;font-size:12px}
   <div class="card"><h2>Mode (작동 모드)</h2>
    <label>What this device shows (화면 표시 모드)</label>
    <select id="mode" onchange="modeChanged()">
-    <option value="stocks">Stock 1 (Domestic / 국내주식)</option>
-    <option value="stocks2">Stock 2 (Overseas / 해외주식)</option>
     <option value="weather">Weather (날씨)</option>
     <option value="carousel">Carousel (rotate modes / 자동 순환)</option>
    </select>
    <div id="carouselRow">
     <label>Switch mode every (순환 주기, 분)</label><input id="carouselMin" type="number" min="0.5" max="120" step="0.5" placeholder="예: 1 또는 3">
     <label style="margin-top:12px;margin-bottom:6px">Rotate through apps (순환에 포함할 앱 선택)</label>
-    <div class="chk"><input id="carouselTicker" type="checkbox"><label>Stock 1 (국내주식)</label></div>
-    <div class="chk"><input id="carouselTicker2" type="checkbox"><label>Stock 2 (해외주식)</label></div>
     <div class="chk"><input id="carouselWeather" type="checkbox"><label>Weather (날씨)</label></div>
    </div>
    <small class="hint">Carousel(자동 순환) 모드를 선택하면 아래 체크된 앱들이 설정한 순환 주기(초)마다 번갈아가며 자동으로 화면에 표시됩니다. 특정 앱만 고정하고 싶다면 원하는 모드를 선택하세요.</small>
@@ -234,134 +228,6 @@ small.hint{display:block;color:var(--mut);margin-top:4px;font-size:12px}
   </div>
  </section>
 
- <!-- TICKER (feature) -->
- <section id="ticker" class="tab">
-  <div class="card"><h2>Live data (Stock 1 - Domestic / 국내주식)</h2><div id="tickBox" class="muted">-</div>
-   <button class="btn sec" style="margin-top:10px" onclick="refreshNow()">Refresh data now</button>
-   <small class="hint">What the device holds right now for each ticker. Green is a good fetch, red means the last fetch failed and the device is retrying it on its own.</small></div>
-  <div class="card"><h2>Rotation &amp; data</h2>
-   <div class="row">
-    <div><label>Show each ticker (s)</label><input id="rotateSec" type="number" min="2" max="300"></div>
-    <div><label>Refresh data (s)</label><input id="pollSec" type="number" min="10" max="3600"></div>
-   </div>
-   <div class="row">
-    <div class="row">
-     <div><label>Chart style (차트 종류)</label>
-      <select id="chartStyle">
-       <option value="candle">Candlestick (봉차트)</option>
-       <option value="line">Line chart (선차트)</option>
-      </select></div>
-    </div>
-    <div><label>Chart timeframe</label>
-     <select id="range">
-      <option value="1m">1 min (1분)</option><option value="5m">5 min (5분)</option>
-      <option value="30m">30 min (30분)</option><option value="60m">60 min (60분)</option>
-      <option value="1d">1 day (1일)</option><option value="5d">5 days (5일)</option>
-      <option value="1mo">1 month (1달)</option><option value="3mo">3 months (3달)</option>
-      <option value="6mo">6 months (6달)</option><option value="1y">1 year (1년)</option>
-      <option value="ytd">Year to date</option><option value="max">Max</option>
-     </select></div>
-    <div><label>Chart points</label><input id="points" type="number" min="0" max="60"></div>
-   </div>
-   <div class="row">
-    <div><label>Change &amp; % basis</label>
-     <select id="changeOnRange">
-      <option value="true">Chart timeframe</option>
-      <option value="false">1 day</option>
-     </select></div>
-   </div>
-   <small class="hint">Chart timeframe: the change, arrow, colors, and chart cover the same span, so they agree. Needs chart data (2+ points); without it the device falls back to the 1-day change. At 1 day it measures from the session's first data point, so overnight gaps are not counted. 1 day: the classic change vs the previous close, which can point the other way than a longer chart.</small>
-   <label>Webhook URL <span class="muted">(only for tickers set to Webhook)</span></label>
-   <input id="webhookUrl" type="url" placeholder="http://n8n.local:5678/webhook/stock">
-  </div>
-  <div class="card"><h2>Color scheme</h2>
-   <select id="colorInverted"><option value="false">Green up / Red down</option>
-    <option value="true">Red up / Green down</option></select>
-  </div>
-  <div class="card"><h2>What to show</h2>
-   <div class="chk"><input id="showName" type="checkbox"><label>Name / symbol</label></div>
-   <div class="chk"><input id="showPrice" type="checkbox"><label>Price</label></div>
-   <div class="chk"><input id="showChange" type="checkbox"><label>Change &amp; % change</label></div>
-   <div class="chk"><input id="showChart" type="checkbox"><label>Sparkline chart</label></div>
-   <div class="chk"><input id="showRangeLabel" type="checkbox"><label>Timeframe label</label></div>
-   <div class="chk"><input id="showUpdatedAgo" type="checkbox"><label>"Updated N s ago"</label></div>
-   <div class="chk"><input id="showPageDots" type="checkbox"><label>Rotation dots</label></div>
-   <div class="chk"><input id="showPortfolio" type="checkbox"><label>Position P/L &amp; portfolio page</label></div>
-  </div>
-  <div class="card"><h2>Tickers (rotate on screen)</h2>
-   <table id="symTable"></table>
-   <button class="btn sec" style="margin-top:10px" onclick="addSym()">+ Add ticker</button>
-   <small class="hint" id="symHint"></small>
-  </div>
-  <div class="card"><h2>cash.ch symbol finder</h2>
-   <label>Instrument <span class="muted">(paste a cash.ch link, ISIN, valor, or a name)</span></label>
-   <div class="row">
-    <input id="cashQ" type="text" placeholder="https://www.cash.ch/... or EU0009654078">
-    <button class="btn sec" style="flex:0 0 auto" onclick="cashFind()">Find</button>
-   </div>
-   <div id="cashRes"></div>
-   <small class="hint">Searches cash.ch from your browser and turns the result into the listing key the ticker needs. Click a match to add it as a ticker.</small>
-  </div>
- </section>
-
-  <!-- TICKER 2 (feature) -->
-  <section id="ticker2" class="tab">
-   <div class="card"><h2>Live data (Stock 2 - Overseas / 해외주식)</h2><div id="tickBox2" class="muted">-</div>
-    <button class="btn sec" style="margin-top:10px" onclick="refreshNow()">Refresh data now</button>
-    <small class="hint">What the device holds right now for Stock 2 tickers.</small></div>
-   <div class="card"><h2>Rotation &amp; data</h2>
-    <div class="row">
-     <div><label>Show each ticker (s)</label><input id="rotateSec_2" type="number" min="2" max="300"></div>
-     <div><label>Refresh data (s)</label><input id="pollSec_2" type="number" min="10" max="3600"></div>
-    </div>
-    <div class="row">
-     <div><label>Chart style (차트 종류)</label>
-      <select id="chartStyle_2">
-       <option value="candle">Candlestick (봉차트)</option>
-       <option value="line">Line chart (선차트)</option>
-      </select></div>
-    </div>
-    <div class="row">
-     <div><label>Chart timeframe</label>
-      <select id="range_2">
-       <option value="1m">1 min (1분)</option><option value="5m">5 min (5분)</option>
-       <option value="30m">30 min (30분)</option><option value="60m">60 min (60분)</option>
-       <option value="1d">1 day (1일봉)</option><option value="1w">1 week (주봉)</option>
-       <option value="1mo">1 month (월봉)</option><option value="1y">1 year (연봉)</option>
-      </select></div>
-     <div><label>Chart points</label><input id="points_2" type="number" min="0" max="60"></div>
-    </div>
-    <div class="row">
-     <div><label>Change &amp; % basis</label>
-      <select id="changeOnRange_2">
-       <option value="true">Chart timeframe</option>
-       <option value="false">1 day</option>
-      </select></div>
-    </div>
-    <small class="hint">Chart timeframe: the change, arrow, colors, and chart cover the same span. 1 day: classic change vs previous close.</small>
-    <label>Webhook URL <span class="muted">(only for tickers set to Webhook)</span></label>
-    <input id="webhookUrl_2" type="url" placeholder="http://n8n.local:5678/webhook/stock">
-   </div>
-   <div class="card"><h2>Color scheme</h2>
-    <select id="colorInverted_2"><option value="false">Green up / Red down</option>
-     <option value="true">Red up / Green down</option></select>
-   </div>
-   <div class="card"><h2>What to show</h2>
-    <div class="chk"><input id="showName_2" type="checkbox"><label>Name / symbol</label></div>
-    <div class="chk"><input id="showPrice_2" type="checkbox"><label>Price</label></div>
-    <div class="chk"><input id="showChange_2" type="checkbox"><label>Change &amp; % change</label></div>
-    <div class="chk"><input id="showChart_2" type="checkbox"><label>Sparkline chart</label></div>
-    <div class="chk"><input id="showRangeLabel_2" type="checkbox"><label>Timeframe label</label></div>
-    <div class="chk"><input id="showUpdatedAgo_2" type="checkbox"><label>"Updated N s ago"</label></div>
-    <div class="chk"><input id="showPageDots_2" type="checkbox"><label>Rotation dots</label></div>
-    <div class="chk"><input id="showPortfolio_2" type="checkbox"><label>Position P/L &amp; portfolio page</label></div>
-   </div>
-   <div class="card"><h2>Tickers (Stock 2 - rotate on screen)</h2>
-    <table id="symTable2"></table>
-    <button class="btn sec" style="margin-top:10px" onclick="addSym(2)">+ Add ticker</button>
-    <small class="hint" id="symHint2"></small>
-   </div>
-  </section>
   <!-- WEATHER (feature) -->
   <section id="weather" class="tab">
    <div class="card"><h2>Weather Data Refresh (날씨 데이터 갱신 주기)</h2>
@@ -533,13 +399,8 @@ document.querySelectorAll('nav button').forEach(function(b){b.onclick=function()
  b.classList.add('active');$(b.dataset.t).classList.add('active');
 }});
 
-// field groups by their location in the nested config
-var T_TEXT=['webhookUrl','range','chartStyle'];                   // ticker strings
-var T_NUM=['rotateSec','pollSec','points'];          // ticker numbers
-var T_BOOL=['showName','showPrice','showChange','showChart','showRangeLabel','showUpdatedAgo','showPageDots','showPortfolio'];
-
 // IANA -> POSIX TZ. The device stores/uses the POSIX rule; this map lives in the
-// browser so the firmware carries no tz database (same idea as the cash finder).
+// browser so the firmware carries no tz database.
 var TZMAP={
  '':'UTC0','UTC':'UTC0',
  'Europe/London':'GMT0BST,M3.5.0/1,M10.5.0','Europe/Dublin':'GMT0IST,M3.5.0/1,M10.5.0',
@@ -588,8 +449,8 @@ function fillTz(){var s=$('tz');if(!s)return;var keys=Object.keys(TZMAP).filter(
  keys.sort(function(a,b){return tzOff(TZMAP[a])-tzOff(TZMAP[b])||(a<b?-1:a>b?1:0)});
  s.innerHTML=keys.map(function(k){return '<option value="'+k+'">'+tzLabel(k||'UTC',TZMAP[k])+'</option>'}).join('');}
 
-var MODEOPT={ticker:'stocks',ticker2:'stocks2',weather:'weather',usage:'usage',radar:'radar',ha:'ha',theme:'theme'};
-var CAROPT={ticker:'carouselTicker',ticker2:'carouselTicker2',weather:'carouselWeather',usage:'carouselUsage',radar:'carouselRadar',ha:'carouselHa',theme:'carouselTheme'};
+var MODEOPT={weather:'weather',usage:'usage',radar:'radar',ha:'ha',theme:'theme'};
+var CAROPT={weather:'carouselWeather',usage:'carouselUsage',radar:'carouselRadar',ha:'carouselHa',theme:'carouselTheme'};
 function hideFeat(name){
  var b=document.querySelector('nav button[data-t="'+name+'"]'); if(b)b.remove();
  var sec=$(name); if(sec)sec.remove();
@@ -612,7 +473,7 @@ function setGain(id,lab,v){var n=(v!=null?v:100);sv(id,n);var e=$(lab);if(e)e.te
 function resetColors(){setGain('rGain','rgVal',100);setGain('gGain','ggVal',100);setGain('bGain','bgVal',100);
  toast('Gains reset — press Save settings to apply')}
 function loadConfig(){return j('/api/config').then(function(c){C=c;
- var f=c.features||{}; ['ticker','usage','radar','ha'].forEach(function(k){if(f[k]===false)hideFeat(k)});
+ var f=c.features||{}; ['usage','radar','ha'].forEach(function(k){if(f[k]===false)hideFeat(k)});
  // WireGuard is only built for the chips with room for it; drop the card otherwise
  if(f.theme!==true){hideFeat('theme');var tc=$('themeCard');if(tc)tc.remove()}else{loadThemes()}
  if(f.wireguard===false){var wc=$('wgCard'); if(wc)wc.remove()}
@@ -630,7 +491,7 @@ function loadConfig(){return j('/api/config').then(function(c){C=c;
  sv('wgAddress',w.address); sv('wgAllowedIps',w.allowedIps);
  sv('wgKeepalive',w.keepalive!=null?w.keepalive:25);
  var pk=$('wgPrivateKey'); if(pk)pk.placeholder=w.privateKeySet?'(unchanged)':'paste the private key';
- var t=c.ticker||{}, u=c.usage||{};
+ var u=c.usage||{};
  // shared
  ['apSsid','hostname'].forEach(function(k){$(k).value=c[k]!=null?c[k]:''});
  renderWifi(c.wifi||(c.staSsid?[{ssid:c.staSsid,passSet:c.staPassSet}]:[]));
@@ -654,32 +515,16 @@ function loadConfig(){return j('/api/config').then(function(c){C=c;
  sv('locLat',ck.lat||''); sv('locLon',ck.lon||''); sv('wLat',ck.lat||37.566); sv('wLon',ck.lon||126.9784);
  sc('sunEnabled',!!ck.sunEnabled); sv('sunLow',ck.sunLow!=null?ck.sunLow:5); $('slVal')&&($('slVal').textContent=(ck.sunLow!=null?ck.sunLow:5));
  sv('sunRise',ck.sunRise!=null?ck.sunRise:60); sv('sunSet',ck.sunSet!=null?ck.sunSet:60); sv('sunOverlap',ck.sunOverlap||0);
- $('mode').value=c.mode||'stocks'; modeChanged();
+ $('mode').value=c.mode||'weather'; modeChanged();
  var cSec = c.carouselSec || 60; sv('carouselMin', Math.round((cSec / 60) * 10) / 10);
  sv('weatherPollMin', c.weatherPollMin || 10);
- sc('carouselTicker',c.carouselTicker!==false); sc('carouselTicker2',c.carouselTicker2!==false); sc('carouselWeather',c.carouselWeather!==false); sc('carouselUsage',c.carouselUsage!==false); sc('carouselRadar',c.carouselRadar!==false);
+ sc('carouselWeather',c.carouselWeather!==false); sc('carouselUsage',c.carouselUsage!==false); sc('carouselRadar',c.carouselRadar!==false);
  sc('carouselHa',c.carouselHa!==false); sc('carouselTheme',c.carouselTheme===true);
  // HA / MQTT slice
  var h=c.ha||{};
  sv('haBrokerHost',h.brokerHost); sv('haBrokerPort',h.brokerPort||1883);
  sv('haBrokerUser',h.brokerUser); sv('haDwellSec',h.dwellSec!=null?h.dwellSec:15);
  var hp=$('haBrokerPass'); if(hp){hp.value='';hp.placeholder=h.passSet?'(unchanged)':'(optional)';}
- // ticker 1 slice
- T_TEXT.forEach(function(k){sv(k,t[k])});
- T_NUM.forEach(function(k){sv(k,t[k])});
- T_BOOL.forEach(function(k){sc(k,t[k])});
- sv('colorInverted',t.colorInverted?'true':'false');
- sv('changeOnRange',t.changeOnRange===false?'false':'true');
- renderSyms(t.symbols||[], 1); symHintFor('naver', 1);
- // ticker 2 slice
- sc('carouselTicker2',c.carouselTicker2!==false);
- var t2=c.ticker2||{};
- T_TEXT.forEach(function(k){sv(k+'_2',t2[k])});
- T_NUM.forEach(function(k){sv(k+'_2',t2[k])});
- T_BOOL.forEach(function(k){sc(k+'_2',t2[k])});
- sv('colorInverted_2',t2.colorInverted?'true':'false');
- sv('changeOnRange_2',t2.changeOnRange===false?'false':'true');
- renderSyms(t2.symbols||[], 2); symHintFor('naver', 2);
  // usage slice
  sv('usageUrl',u.usageUrl);
  sv('usagePollSec',u.pollSec);
@@ -709,47 +554,6 @@ function loadConfig(){return j('/api/config').then(function(c){C=c;
 })}
 
 function esc(s){return (''+(s==null?'':s)).replace(/[<>&"]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]})}
-function symHintFor(v, which){which=which||1;var h=$(which===2?'symHint2':'symHint');if(!h)return;
- h.innerHTML=(v==='naver'
-  ?(which===2
-    ?'<b>Naver Finance (미국/해외 주식 실시간)</b>: 네이버 미국 종목코드(예: <code>NVDA.O</code> 엔비디아, <code>SOXX.O</code> 필라델피아반도체, <code>SPY</code> S&amp;P500, <code>TSM</code>, <code>AAPL.O</code>)를 입력하세요. 정규장은 물론 <b>프리마켓/애프터마켓</b> 실시간 거래가 및 캔들 차트가 반영됩니다.'
-    :'<b>Naver Finance (한국 국내주식 실시간)</b>: 6자리 종목코드(예: <code>005930</code> 삼성전자, <code>000660</code> SK하이닉스, <code>122630</code> KODEX레버리지)를 입력하면 실시간 주가, 분봉 캔들 차트, 어제 종가선이 표시됩니다.')
-  :v==='cash'
-  ?'<b>cash.ch</b>: fetched directly by the device. The symbol is a listing key like <code>123456789-246-333</code>; the finder below turns a cash.ch link, ISIN, or name into one.'
-   +(C.chip==='esp8266'?' <b>On this ESP8266</b>, cash.ch\'s TLS is tight on this chip &mdash; if it proves unstable, use the <b>GitHub</b> source for the same listing key instead. The ESP32 boards fetch cash.ch directly.':'')
-  :v==='github'
-  ?'<b>GitHub</b>: reads a listing key\'s quote from a small static JSON published to a repo\'s <code>data</code> branch.'
-  :v==='webhook'
-  ?'<b>Webhook</b>: the device asks the webhook URL above and passes the symbol through as-is.'
-  :'<b>Yahoo Finance</b>: fetched directly by the device. Use Yahoo symbols: <code>AAPL</code>, <code>TSLA</code>, <code>BTC-USD</code>.')
-  +' Name is optional; if set it overrides the source\'s name. Qty and per-unit cost are optional too.';}
-
-// cash.ch symbol finder: runs in YOUR browser (cash.ch answers cross-origin),
-// the device itself is not involved in the search.
-function cashFind(){var q=gv('cashQ').trim();if(!q){toast('Paste a link, ISIN, or name first');return}
- var m=q.match(/^https?:\/\/\S*?(\d{5,12})/); if(m)q=m[1];   // a cash.ch link carries the valor in its slug
- $('cashRes').innerHTML='<div class="muted">Searching cash.ch...</div>';
- var gq='query{textSearch(publication:CASH,search:"'+q.replace(/["\\]/g,'')+'",sort:Relevance,sortOrder:Descending,limit:10,offset:0){'+
-  'equity{items{...on Equity{listingId mName market mCur mIsin}}} fund{items{...on Fund{listingId mName market mCur mIsin}}} '+
-  'derivative{items{...on Derivative{listingId mName market mCur mIsin}}} bond{items{...on Bond{listingId mName market mCur mIsin}}} '+
-  'index{items{...on Index{listingId mName market mCur}}} diverse{items{...on Diverse{listingId mName market mCur mIsin}}} '+
-  'cryptoCurrency{items{...on CryptoCurrency{listingId mName market mCur}}}}}';
- fetch('https://www.cash.ch/_/api/graphql/prod?query='+encodeURIComponent(gq))
- .then(function(r){return r.json()})
- .then(function(d){var out=[];var b=(d.data&&d.data.textSearch)||{};
-  ['equity','derivative','fund','bond','index','diverse','cryptoCurrency'].forEach(function(k){
-   ((b[k]&&b[k].items)||[]).forEach(function(it){if(it&&it.listingId)out.push(it)});});
-  if(!out.length){$('cashRes').innerHTML='<div class="muted">Nothing found on cash.ch</div>';return}
-  var h='';out.slice(0,10).forEach(function(it){
-   h+='<div class="net" onclick="cashPick(this.dataset.k)" data-k="'+esc(it.listingId)+'"><span>'+esc(it.mName||'?')+
-    ' <span class="muted">'+esc(it.mIsin||'')+'</span></span><span class="muted">'+esc(it.market||'')+' '+esc(it.mCur||'')+'</span></div>';});
-  $('cashRes').innerHTML=h;
- }).catch(function(){$('cashRes').innerHTML='<div class="muted">cash.ch not reachable from this browser</div>'});}
-function cashPick(k){var rows=document.querySelectorAll('#symTable tr');var tr=null;
- for(var i=0;i<rows.length;i++){if(!rows[i].querySelector('.s').value.trim()){tr=rows[i];break}}
- if(!tr){if(rows.length>=8){toast('Max 8');return}addRow({});tr=$('symTable').lastChild}
- tr.querySelector('.s').value=k;tr.querySelector('.src').value='cash';symHintFor('cash');
- toast('Added '+k+'. Set a name, then Save.');}
 function radarSrcChanged(){if(!$('radarSource'))return;var v=$('radarSource').value;
  $('radarWebhookRow').style.display=(v==='webhook')?'block':'none';
  $('radarSrcHint').innerHTML=
@@ -820,33 +624,6 @@ function collect(){
   o.button={shortAction:parseInt(gv('btnShort')), longAction:parseInt(gv('btnLong')),
    sensitivity:parseInt(gv('btnSens'))||85};
  }
- // ticker slice (only if compiled in)
- if($('ticker')){
-  var t={colorInverted:gv('colorInverted')==='true',changeOnRange:gv('changeOnRange')==='true'};
-  T_TEXT.forEach(function(k){t[k]=gv(k)});
-  T_NUM.forEach(function(k){t[k]=parseInt(gv(k))||0});
-  T_BOOL.forEach(function(k){t[k]=gc(k)});
-  t.symbols=[];
-  document.querySelectorAll('#symTable tr').forEach(function(tr){
-   var s=tr.querySelector('.s').value.trim();
-   if(s)t.symbols.push({symbol:s,name:tr.querySelector('.n').value.trim(),source:tr.querySelector('.src').value,
-    qty:parseFloat(tr.querySelector('.q').value)||0,cost:parseFloat(tr.querySelector('.c').value)||0});
-  });
-  o.ticker=t;
- }
- if($('ticker2')){
-  var t2={colorInverted:gv('colorInverted_2')==='true',changeOnRange:gv('changeOnRange_2')==='true'};
-  T_TEXT.forEach(function(k){t2[k]=gv(k+'_2')});
-  T_NUM.forEach(function(k){t2[k]=parseInt(gv(k+'_2'))||0});
-  T_BOOL.forEach(function(k){t2[k]=gc(k+'_2')});
-  t2.symbols=[];
-  document.querySelectorAll('#symTable2 tr').forEach(function(tr){
-   var s=tr.querySelector('.s').value.trim();
-   if(s)t2.symbols.push({symbol:s,name:tr.querySelector('.n').value.trim(),source:tr.querySelector('.src').value,
-    qty:parseFloat(tr.querySelector('.q').value)||0,cost:parseFloat(tr.querySelector('.c').value)||0});
-  });
-  o.ticker2=t2;
- }
  // usage slice
  if($('usage')) o.usage={usageUrl:gv('usageUrl'), pollSec:parseInt(gv('usagePollSec'))||0, hide5h:gc('usageHide5h')};
  // HA / MQTT slice (blank password keeps the stored one, so only send what was typed)
@@ -907,23 +684,6 @@ function scanPick(ssid){var rows=document.querySelectorAll('#wifiTable tr');var 
  for(var i=0;i<rows.length;i++){if(!rows[i].querySelector('.ws').value.trim()){tr=rows[i];break}}
  if(!tr){if(rows.length>=4){toast('Max 4');return}addWifiRow({});tr=$('wifiTable').lastChild}
  tr.querySelector('.ws').value=ssid;tr.querySelector('.wp').focus();}
-
-// symbols
-function renderSyms(arr, which){which=which||1;var tid=which===2?'symTable2':'symTable';var t=$(tid);if(!t)return;t.innerHTML='';arr.forEach(function(o){addRow(o,which)});if(!arr.length)addRow({},which)}
-function addRow(o, which){which=which||1;var tid=which===2?'symTable2':'symTable';var t=$(tid);var tr=document.createElement('tr');tr.className='symrow';
- var phSymbol = (which===2) ? "NVDA.O" : "005930";
- var phName = (which===2) ? "NVIDIA" : "SAMSUNG";
- tr.innerHTML='<td style="width:24%"><input class="s" type="text" placeholder="'+phSymbol+'" value="'+esc(o.symbol||'')+'"></td>'+
-  '<td><input class="n" type="text" placeholder="'+phName+'" value="'+esc(o.name||'')+'"></td>'+
-  '<td style="width:118px"><select class="src" onchange="symHintFor(this.value,'+which+')">'+
-   '<option value="naver">Naver '+(which===2?'(해외)':'(국내)')+'</option><option value="yahoo">Yahoo Finance</option><option value="cash">cash.ch</option><option value="github">GitHub</option><option value="webhook">Webhook</option></select></td>'+
-  '<td style="width:58px"><input class="q" type="number" step="any" min="0" placeholder="qty" value="'+(o.qty>0?o.qty:'')+'"></td>'+
-  '<td style="width:70px"><input class="c" type="number" step="any" min="0" placeholder="cost" value="'+(o.cost>0?o.cost:'')+'"></td>'+
-  '<td style="width:34px"><button class="btn sec" style="padding:6px 10px" onclick="this.closest(\'tr\').remove()">&times;</button></td>';
- var defSrc = (o.symbol && /^[0-9]{6}(\.KS|\.KQ)?$/i.test(o.symbol)) ? 'naver' : (o.source||'naver');
- tr.querySelector('.src').value=o.source||defSrc;
- t.appendChild(tr);}
-function addSym(which){which=which||1;var sel=which===2?'#symTable2 tr':'#symTable tr';if(document.querySelectorAll(sel).length>=8){toast('Max 8');return}addRow({},which)}
 
 // airports
 function renderAps(arr){var t=$('apTable');if(!t)return;t.innerHTML='';arr.forEach(addApRow);if(!arr.length)addApRow({})}
@@ -993,22 +753,6 @@ function showStatus(s){
   ((s.wg&&s.wg.compiledIn)?kv('VPN',s.wg.held?'held':(s.wg.up?'up':(s.wg.enabled?'connecting':'off'))):'')+
   (s.radar?kv('Radar',radarLine(s.radar)):'');
  var wgs=$('wgStatus'); if(wgs)wgs.textContent=wgLine(s.wg);
- var tb=$('tickBox'), tb2=$('tickBox2');
- if(tb||tb2){
-  var h1='', h2='';
-  var s1Syms = Array.from(document.querySelectorAll('#symTable .s')).map(function(e){return e.value.trim()});
-  (s.tickers||[]).forEach(function(t){
-   var c=t.error?'var(--red)':(t.valid?'var(--acc)':'var(--mut)');
-   var pc=t.changePct!=null?(t.changePct>=0?'+':'')+t.changePct.toFixed(2)+'%':'';
-   var st=t.valid?(t.price+'  '+pc):(t.error?'error':'...');
-   if(t.error&&t.retryIn!=null)st+=' <span class="muted">(retry '+t.retryIn+'s)</span>';
-   var line='<div class="kv"><b style="color:'+c+'">'+t.symbol+'</b><span>'+st+'</span></div>';
-   if(s1Syms.indexOf(t.symbol)>=0) h1+=line;
-   else h2+=line;
-  });
-  if(tb) tb.innerHTML=(h1||h2)||'<span class="muted">No tickers configured</span>';
-  if(tb2) tb2.innerHTML=(h2||h1)||'<span class="muted">No tickers configured</span>';
- }
 }
 function crashLine(x){return x.reason+(x.epc?', cause '+x.exccause+', epc '+x.epc+', addr '+x.addr:'')+', fw '+x.fw+(x.uptime!=null?', up '+fmtUp(x.uptime):'')}
 function clearCrash(){j('/api/crash/clear',{method:'POST'}).then(function(){toast('Crash record cleared');loadStatus()}).catch(function(e){toast(e.message)})}
@@ -1045,7 +789,6 @@ function wgLine(w){
 }
 function fmtUp(s){var d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60);
  return (d?d+'d ':'')+(h?h+'h ':'')+m+'m'}
-function refreshNow(){j('/api/refresh',{method:'POST'}).then(function(){toast('Refreshing...');setTimeout(loadStatus,1500)})}
 
 // HA screens purge: wipes the device store and the broker's retained copies.
 function haClearScreens(){if(!confirm('Clear all HA screens on the device and on the broker?'))return;
@@ -1146,8 +889,6 @@ var RU={
 // tabs
 "Status":"Состояние",
 "General":"Общие",
-"Stock 1 (Domestic)":"Акции 1 (внутр. рынок)",
-"Stock 2 (Overseas)":"Акции 2 (зарубежные)",
 "Weather":"Погода",
 "Display":"Дисплей",
 "WiFi":"Wi-Fi",
@@ -1188,15 +929,11 @@ var RU={
 // general
 "Mode (작동 모드)":"Режим работы",
 "What this device shows (화면 표시 모드)":"Что показывать на экране",
-"Stock 1 (Domestic / 국내주식)":"Акции 1 (внутренний рынок)",
-"Stock 2 (Overseas / 해외주식)":"Акции 2 (зарубежные)",
 "Weather (날씨)":"Погода",
 "Carousel (rotate modes / 자동 순환)":"Карусель (режимы по очереди)",
 "Switch mode every (순환 주기, 분)":"Менять режим каждые (мин)",
 "예: 1 또는 3":"например, 1 или 3",
 "Rotate through apps (순환에 포함할 앱 선택)":"Что включить в карусель",
-"Stock 1 (국내주식)":"Акции 1 (внутренний рынок)",
-"Stock 2 (해외주식)":"Акции 2 (зарубежные)",
 "Carousel(자동 순환) 모드를 선택하면 아래 체크된 앱들이 설정한 순환 주기(초)마다 번갈아가며 자동으로 화면에 표시됩니다. 특정 앱만 고정하고 싶다면 원하는 모드를 선택하세요.":"В режиме «Карусель» отмеченные экраны сменяют друг друга через заданное время. Чтобы на экране постоянно оставался один из них, выберите его режим.",
 "Save settings":"Сохранить настройки",
 "Save failed":"Не удалось сохранить",
@@ -1335,86 +1072,6 @@ var RU={
 "Set the device location above.":"Укажите выше местоположение устройства.",
 "{0} Brightness now: {1}%.":"{0} Яркость сейчас: {1}%.",
 "Today: {0}. Fades start at sunrise and at sunset.":"Сегодня: {0}. Яркость начинает меняться в момент восхода и заката.",
-// tickers
-"Live data (Stock 1 - Domestic / 국내주식)":"Текущие данные (Акции 1, внутренний рынок)",
-"Live data (Stock 2 - Overseas / 해외주식)":"Текущие данные (Акции 2, зарубежные)",
-"Refresh data now":"Обновить данные сейчас",
-"Refreshing...":"Обновляем…",
-"What the device holds right now for each ticker. Green is a good fetch, red means the last fetch failed and the device is retrying it on its own.":"Данные по каждому тикеру, которые сейчас есть у часов. Зелёный — данные получены, красный — последний запрос не удался, и часы сами повторяют его.",
-"What the device holds right now for Stock 2 tickers.":"Данные по тикерам «Акции 2», которые сейчас есть у часов.",
-"No tickers configured":"Тикеры не заданы",
-"error":"ошибка",
-"(retry {0}s)":"(повтор через {0} с)",
-"Rotation & data":"Смена тикеров и данные",
-"Show each ticker (s)":"Показывать тикер (с)",
-"Refresh data (s)":"Обновлять данные (с)",
-"Chart style (차트 종류)":"Вид графика",
-"Candlestick (봉차트)":"Свечи",
-"Line chart (선차트)":"Линия",
-"Chart timeframe":"Период графика",
-"1 min (1분)":"1 мин",
-"5 min (5분)":"5 мин",
-"30 min (30분)":"30 мин",
-"60 min (60분)":"60 мин",
-"1 day (1일)":"1 день",
-"5 days (5일)":"5 дней",
-"1 month (1달)":"1 месяц",
-"3 months (3달)":"3 месяца",
-"6 months (6달)":"6 месяцев",
-"1 year (1년)":"1 год",
-"Year to date":"С начала года",
-"Max":"Всё время",
-"1 day (1일봉)":"1 день",
-"1 week (주봉)":"1 неделя",
-"1 month (월봉)":"1 месяц",
-"1 year (연봉)":"1 год",
-"Chart points":"Точек на графике",
-"Change & % basis":"Изменение считать за",
-"1 day":"1 день",
-"Chart timeframe: the change, arrow, colors, and chart cover the same span, so they agree. Needs chart data (2+ points); without it the device falls back to the 1-day change. At 1 day it measures from the session's first data point, so overnight gaps are not counted. 1 day: the classic change vs the previous close, which can point the other way than a longer chart.":"«Период графика»: изменение цены, стрелка, цвета и график относятся к одному и тому же отрезку и не противоречат друг другу. Нужны данные графика (хотя бы 2 точки); без них часы показывают изменение за день. Для периода в 1 день отсчёт идёт от первой точки торговой сессии, так что ночной разрыв в цене не учитывается. «1 день»: привычное изменение к цене закрытия предыдущего дня; его направление может не совпадать с графиком за более долгий период.",
-"Chart timeframe: the change, arrow, colors, and chart cover the same span. 1 day: classic change vs previous close.":"«Период графика»: изменение, стрелка, цвета и график относятся к одному отрезку. «1 день»: привычное изменение к цене закрытия предыдущего дня.",
-"Webhook URL":"URL вебхука",
-"(only for tickers set to Webhook)":"(только для тикеров с источником Webhook)",
-"Color scheme":"Цвета роста и падения",
-"Green up / Red down":"Рост — зелёный, падение — красный",
-"Red up / Green down":"Рост — красный, падение — зелёный",
-"What to show":"Что показывать",
-"Name / symbol":"Название / тикер",
-"Price":"Цена",
-"Change & % change":"Изменение и изменение в %",
-"Sparkline chart":"Мини-график",
-"Timeframe label":"Подпись периода",
-'"Updated N s ago"':"«Обновлено N с назад»",
-"Rotation dots":"Точки-индикаторы страниц",
-"Position P/L & portfolio page":"Прибыль и убыток по позиции, страница портфеля",
-"Tickers (rotate on screen)":"Тикеры (сменяются на экране)",
-"Tickers (Stock 2 - rotate on screen)":"Тикеры (Акции 2, сменяются на экране)",
-"+ Add ticker":"+ Добавить тикер",
-"Max 8":"Не больше 8",
-"qty":"кол-во",
-"cost":"цена",
-"(국내)":"(Корея)",
-"(해외)":"(мир)",
-"Naver {0}":"Naver {0}",
-"{0} Name is optional; if set it overrides the source's name. Qty and per-unit cost are optional too.":"{0} Название можно не указывать; если оно задано, то заменяет название из источника. Количество и цену покупки за штуку тоже указывать необязательно.",
-"<b>Naver Finance (미국/해외 주식 실시간)</b>: 네이버 미국 종목코드(예: <code>NVDA.O</code> 엔비디아, <code>SOXX.O</code> 필라델피아반도체, <code>SPY</code> S&amp;P500, <code>TSM</code>, <code>AAPL.O</code>)를 입력하세요. 정규장은 물론 <b>프리마켓/애프터마켓</b> 실시간 거래가 및 캔들 차트가 반영됩니다.":"<b>Naver Finance (акции США и других зарубежных рынков, в реальном времени)</b>: введите код бумаги, принятый в Naver (например, <code>NVDA.O</code> — NVIDIA, <code>SOXX.O</code> — фонд на индекс полупроводников, <code>SPY</code> — S&amp;P 500, <code>TSM</code>, <code>AAPL.O</code>). Цены и свечной график обновляются не только в основную сессию, но и на <b>премаркете и постмаркете</b>.",
-"<b>Naver Finance (한국 국내주식 실시간)</b>: 6자리 종목코드(예: <code>005930</code> 삼성전자, <code>000660</code> SK하이닉스, <code>122630</code> KODEX레버리지)를 입력하면 실시간 주가, 분봉 캔들 차트, 어제 종가선이 표시됩니다.":"<b>Naver Finance (корейские акции, в реальном времени)</b>: введите шестизначный код бумаги (например, <code>005930</code> — Samsung Electronics, <code>000660</code> — SK Hynix, <code>122630</code> — KODEX Leverage). Часы покажут текущую цену, минутный свечной график и линию вчерашнего закрытия.",
-"<b>cash.ch</b>: fetched directly by the device. The symbol is a listing key like <code>123456789-246-333</code>; the finder below turns a cash.ch link, ISIN, or name into one.":"<b>cash.ch</b>: часы запрашивают данные напрямую. Тикером служит ключ листинга вида <code>123456789-246-333</code>; получить его из ссылки cash.ch, ISIN или названия поможет поиск ниже.",
-"{0} <b>On this ESP8266</b>, cash.ch's TLS is tight on this chip — if it proves unstable, use the <b>GitHub</b> source for the same listing key instead. The ESP32 boards fetch cash.ch directly.":"{0} <b>На ESP8266</b> для TLS-соединения с cash.ch едва хватает памяти: если данные приходят нестабильно, выберите для того же ключа листинга источник <b>GitHub</b>. Платы на ESP32 работают с cash.ch напрямую.",
-"<b>GitHub</b>: reads a listing key's quote from a small static JSON published to a repo's <code>data</code> branch.":"<b>GitHub</b>: котировка для ключа листинга берётся из небольшого статического JSON-файла, опубликованного в ветке <code>data</code> репозитория.",
-"<b>Webhook</b>: the device asks the webhook URL above and passes the symbol through as-is.":"<b>Webhook</b>: часы обращаются по указанному выше URL вебхука и передают тикер без изменений.",
-"<b>Yahoo Finance</b>: fetched directly by the device. Use Yahoo symbols: <code>AAPL</code>, <code>TSLA</code>, <code>BTC-USD</code>.":"<b>Yahoo Finance</b>: часы запрашивают данные напрямую. Указывайте тикеры в формате Yahoo: <code>AAPL</code>, <code>TSLA</code>, <code>BTC-USD</code>.",
-"cash.ch symbol finder":"Поиск тикера на cash.ch",
-"Instrument":"Инструмент",
-"(paste a cash.ch link, ISIN, valor, or a name)":"(вставьте ссылку cash.ch, ISIN, номер валора или название)",
-"https://www.cash.ch/... or EU0009654078":"https://www.cash.ch/... или EU0009654078",
-"Find":"Найти",
-"Searches cash.ch from your browser and turns the result into the listing key the ticker needs. Click a match to add it as a ticker.":"Ищет на cash.ch прямо из вашего браузера и превращает результат в ключ листинга, который нужен тикеру. Нажмите на найденный инструмент, чтобы добавить его в тикеры.",
-"Paste a link, ISIN, or name first":"Сначала вставьте ссылку, ISIN или название",
-"Searching cash.ch...":"Ищем на cash.ch…",
-"Nothing found on cash.ch":"На cash.ch ничего не найдено",
-"cash.ch not reachable from this browser":"Из этого браузера cash.ch недоступен",
-"Added {0}. Set a name, then Save.":"Добавлено: {0}. Укажите название и сохраните настройки.",
 // weather
 "Weather Data Refresh (날씨 데이터 갱신 주기)":"Обновление данных о погоде",
 "Refresh weather every (날씨 데이터 갱신 주기, 분)":"Обновлять погоду каждые (мин)",

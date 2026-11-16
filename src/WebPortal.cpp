@@ -9,7 +9,6 @@
 #include "Net.h"
 #include "Gfx.h"
 #include "OtaUpdate.h"
-#include "StockClient.h"
 #include "UsageClient.h"
 #if WITH_RADAR
 #include "RadarClient.h"
@@ -130,7 +129,6 @@ static void handleGetConfig() {
   settingsToJson(*S, root, /*includeSecrets=*/false);
   // Which features are compiled in (so a lean build hides the tabs it dropped).
   JsonObject feat = root["features"].to<JsonObject>();
-  feat["ticker"] = (bool)WITH_TICKER;
   feat["usage"]  = (bool)WITH_USAGE;
   feat["radar"]  = (bool)WITH_RADAR;
   feat["ha"]     = (bool)WITH_HA;
@@ -168,32 +166,6 @@ struct StatusSink : smalltv::Sink {
     return true;
   }
 };
-
-#if WITH_TICKER
-static smalltv::StatusTicker statusTicker(size_t i) {
-  uint8_t c0 = stocksCount(0);
-  uint8_t set = (i < c0) ? 0 : 1;
-  uint8_t idx = (i < c0) ? i : (i - c0);
-  const TickerSettings& ts = (set == 1) ? S->ticker2 : S->ticker;
-  const StockData& d = stockAt(idx, set);
-  smalltv::StatusTicker t;
-  t.symbol = d.symbol;
-  t.valid = d.valid;
-  t.error = d.error;
-  if (d.error) t.retryIn = stockRetryInSec(idx, set);   // seconds to the next attempt
-  if (d.valid) {
-    t.price = d.price;
-    float chg, pct;
-    bool onRange = false;
-    if (stockDisplayChange(d, ts, chg, pct, &onRange)) {
-      t.hasChange = true;
-      t.changePct = pct;                           // as displayed on the device
-      t.onRange = onRange;                         // which basis that was
-    }
-  }
-  return t;
-}
-#endif
 
 // GET /api/status. The reply is written in 128-byte pieces as the values are
 // read, never built whole (StatusJson.h): its length is not known before the
@@ -258,9 +230,6 @@ static void handleStatus() {
     k.uptime = cr.uptimeS;
     smalltv::writeStatusCrash(out, k);
   }
-#if WITH_TICKER
-  smalltv::writeStatusTickers(out, stocksCount(0) + stocksCount(1), statusTicker);
-#endif
 #if WITH_RADAR
   // An empty scope has several possible causes and the screen shows the same
   // thing for all of them, so report the last poll's actual outcome.
@@ -352,7 +321,7 @@ static void handlePostConfig() {
   appApplyBrightness();     // apply effective brightness (respects night/auto/manual)
   gfxApplyColors(*S);       // rotation, panel colour order/inversion, channel gain
   gfxSetLang(S->clock.lang.c_str());   // language of the on-screen text
-  appInvalidate();          // re-init every mode + repaint (covers mode/URL/symbol changes)
+  appInvalidate();          // re-init every mode + repaint (covers mode/URL changes)
 
   // Rebuild the tunnel when its settings changed. A save that changes nothing
   // still rebuilds while the tunnel is held after repeated crashes: that
@@ -442,14 +411,6 @@ static void handleImport() {
   }
   server.send(200, "application/json", "{\"ok\":true,\"reboot\":true}");
   scheduleReboot(800);
-}
-
-static void handleRefresh() {
-  if (!requireAuth()) return;
-#if WITH_TICKER
-  stocksForceRefreshAll();
-#endif
-  server.send(200, "application/json", "{\"ok\":true}");
 }
 
 #if WITH_HA
@@ -693,7 +654,6 @@ void webPortalBegin(Settings& settings) {
   server.on("/api/reboot", HTTP_POST, handleReboot);
   server.on("/api/factory", HTTP_POST, handleFactory);
   server.on("/api/crash/clear", HTTP_POST, handleCrashClear);
-  server.on("/api/refresh", HTTP_POST, handleRefresh);
   server.on("/api/export", HTTP_GET, handleExport);
   server.on("/api/import", HTTP_POST, handleImport);
   server.on("/api/checkupdate", HTTP_GET, handleCheckUpdate);

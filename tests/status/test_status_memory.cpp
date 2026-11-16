@@ -50,8 +50,7 @@ void* operator new(size_t n) {
 void operator delete(void* p) noexcept { __wrap_free(p); }
 void operator delete(void* p, size_t) noexcept { __wrap_free(p); }
 
-// The values of a busy device: 3 tickers, a radar with a long URL, the tunnel.
-static const char* const Symbols[] = {"AAPL", "BTC-USD", "NOPE"};
+// The values of a busy device: a radar with a long URL, the tunnel.
 static StatusData busyData() {
   StatusData d;
   d.fw = "mysmall-tv"; d.version = "3.2.1"; d.variant = "esp8266";
@@ -67,17 +66,6 @@ static StatusData busyData() {
   d.wg.compiledIn = d.wg.enabled = d.wg.up = true;
   d.wg.stage = 3; d.wg.attempts = 2; d.wg.endpointIp = "203.0.113.9"; d.wg.lastHandshake = 1793532000;
   return d;
-}
-static StatusTicker tickerAt(size_t i) {
-  StatusTicker t{};
-  t.symbol = Symbols[i];
-  t.valid = i != 2;
-  t.error = i == 2;
-  t.retryIn = 45;
-  t.price = 189.37f + i;
-  t.hasChange = i == 0;
-  t.changePct = -1.25f;
-  return t;
 }
 static StatusRadar busyRadar() {
   StatusRadar r;
@@ -106,14 +94,6 @@ static size_t oldWay() {
   if (d.sun[0]) o["sun"] = std::string(d.sun);
   o["bl"] = d.bl;
   fillWg(o["wg"].to<JsonObject>(), d.wg);
-  JsonArray arr = o["tickers"].to<JsonArray>();
-  for (size_t i = 0; i < 3; i++) {
-    const StatusTicker s = tickerAt(i);
-    JsonObject t = arr.add<JsonObject>();
-    t["symbol"] = s.symbol; t["valid"] = s.valid; t["error"] = s.error;
-    if (s.error) t["retryIn"] = s.retryIn;
-    if (s.valid) { t["price"] = s.price; if (s.hasChange) { t["changePct"] = s.changePct; t["basis"] = "day"; } }
-  }
   const StatusRadar rr = busyRadar();
   JsonObject r = o["radar"].to<JsonObject>();
   r["count"] = rr.count; r["error"] = rr.error; r["stage"] = rr.stage; r["seenAc"] = rr.seenAc;
@@ -138,7 +118,6 @@ static size_t newWay(CountingSink& sink) {
   const StatusRadar radar = busyRadar();
   PieceWriter<128> out(sink);
   writeStatusHead(out, d);
-  writeStatusTickers(out, 3, tickerAt);
   writeStatusRadar(out, radar);
   writeStatusEnd(out);
   return sink.bytes;

@@ -60,7 +60,7 @@ class BoundedClient : public Transport {
 };
 
 // After GET(), read the body through HTTPClient's stream (the same pattern
-// StockClient and OtaUpdate use): HTTPClient owns the response from that
+// OtaUpdate uses): HTTPClient owns the response from that
 // point, and on ESP8266 the raw client behind it never yields body bytes, so
 // every theme-data fetch failed at the body-read stage despite HTTP 200.
 struct BodyStream {
@@ -163,7 +163,7 @@ void runFetch(void* parameter) {
 #if defined(SMALLTV_ESP8266)
 // No FreeRTOS on this chip: run the bounded fetch synchronously on the
 // caller's own stack, the same "one blocking call per main-loop tick"
-// pattern the ticker and radar clients already use here. Deadline (inside
+// pattern the weather and radar clients already use here. Deadline (inside
 // fetchThemeSource) already bounds this to DataTimeoutMs plus body-read
 // time, the same order of magnitude a TLS handshake already costs this
 // chip elsewhere.

@@ -21,9 +21,8 @@ static const char* g_tlsProbedHost = nullptr;
 
 // TLS session resumption: the first handshake stores its parameters here and
 // later connects to the same feed resume without the full ECDHE exchange,
-// which is both the slow part and the allocation peak on this chip. cash.ch
-// has fetched this way for a long time; the radar polls far more often, so it
-// benefits more. Reset alongside the MFLN probe when the provider changes.
+// which is both the slow part and the allocation peak on this chip. The radar
+// polls often, so it benefits a lot. Reset alongside the MFLN probe when the provider changes.
 static TlsSession g_tlsSession;
 
 // Last-poll diagnostics (see RadarStage in the header).
@@ -214,7 +213,7 @@ static bool fetchUrl(const Settings& s, const String& url) {
   std::unique_ptr<NetClient> client;
   if (https) {
     // The handshake needs one contiguous block, not total free heap: 16 KB is
-    // the same floor the cash.ch fetch uses for this identical handshake shape.
+    // the floor for this handshake shape.
     // (The old total-heap >= 18000 test passed on fragmented heaps that then
     // failed the allocation, and failed healthy ones that would have worked.)
     if (platformMaxFreeBlock() < 16000) { g_stage = RADAR_LOW_HEAP; return false; }

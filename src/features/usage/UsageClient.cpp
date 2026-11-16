@@ -88,7 +88,7 @@ bool usageApply(const String& body) {
   return applyUsageDoc(g_usage, doc);
 }
 
-// ---- one HTTP(S) GET + parse (mirrors StockClient::fetchUrl) ----------------
+// ---- one HTTP(S) GET + parse -------------------------------------------------
 static bool fetchUsage(const Settings& s) {
   const String& url = s.usage.usageUrl;
   if (url.length() < 8) return false;
@@ -106,7 +106,7 @@ static bool fetchUsage(const Settings& s) {
   http.setTimeout(s.httpTimeout);
   http.setReuse(false);
   // HTTP/1.0 so the server can't reply with chunked framing: parseUsage reads the
-  // raw stream via getStream(), which neither core de-chunks (same as StockClient).
+  // raw stream via getStream(), which neither core de-chunks.
   http.useHTTP10(true);
   if (!http.begin(*client, url)) return false;
   http.addHeader("Accept", "application/json");

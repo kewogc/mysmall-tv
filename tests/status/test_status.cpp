@@ -2,7 +2,8 @@
 // Its bytes must stay exactly what 3.2.1 sent: the web UI, Home Assistant,
 // n8n and the device tests all read it. The reference below is the way
 // handleStatus() built the reply until 3.2.1 (one ArduinoJson document,
-// serialized whole), fed the same values.
+// serialized whole), fed the same values. The one difference from 3.2.1 is
+// the "tickers" array, which left the reply together with that feature.
 #include "StatusJson.h"
 #include <ArduinoJson.h>
 #include <cassert>
@@ -29,16 +30,12 @@ static void fillWg(JsonObject o, const StatusWg& w) {
 static StatusData idleData();
 static StatusRadar idleRadar();
 struct Case {
-  Case(const char* n, bool tickers, bool radarOn) : name(n), d(idleData()), tickersCompiled(tickers), radarCompiled(radarOn), radar(idleRadar()) {}
+  Case(const char* n, bool radarOn) : name(n), d(idleData()), radarCompiled(radarOn), radar(idleRadar()) {}
   const char* name;
   StatusData d;
-  bool tickersCompiled;
-  std::vector<StatusTicker> tickers;
   bool radarCompiled;
   StatusRadar radar;
 };
-
-static const char* basisOf(const StatusTicker& t) { return t.onRange ? "range" : "day"; }
 
 // 3.2.1's handleStatus(), field by field.
 static std::string reference(const Case& c) {
@@ -71,23 +68,6 @@ static std::string reference(const Case& c) {
   o["bl"] = d.bl;
   if (d.ha[0]) o["ha"] = d.ha;
   fillWg(o["wg"].to<JsonObject>(), d.wg);
-  if (c.tickersCompiled) {
-    JsonArray arr = o["tickers"].to<JsonArray>();
-    for (const StatusTicker& d : c.tickers) {
-      JsonObject t = arr.add<JsonObject>();
-      t["symbol"] = d.symbol;
-      t["valid"] = d.valid;
-      t["error"] = d.error;
-      if (d.error) t["retryIn"] = d.retryIn;
-      if (d.valid) {
-        t["price"] = d.price;
-        if (d.hasChange) {
-          t["changePct"] = d.changePct;
-          t["basis"] = basisOf(d);
-        }
-      }
-    }
-  }
   if (c.radarCompiled) {
     const StatusRadar& s = c.radar;
     JsonObject r = o["radar"].to<JsonObject>();
@@ -120,7 +100,6 @@ struct StringSink : Sink {
 template <size_t Piece> static std::string streamed(const Case& c, StringSink& sink) {
   PieceWriter<Piece> out(sink);
   writeStatusHead(out, c.d);
-  if (c.tickersCompiled) writeStatusTickers(out, c.tickers.size(), [&](size_t i) { return c.tickers[i]; });
   if (c.radarCompiled) writeStatusRadar(out, c.radar);
   writeStatusEnd(out);
   return sink.text;
@@ -158,12 +137,12 @@ static StatusRadar idleRadar() {
 static std::vector<Case> cases() {
   std::vector<Case> all;
   // Saved from the device (Pixel Room, nothing configured).
-  Case idle("idle", true, true);
+  Case idle("idle", true);
   all.push_back(idle);
 
-  // Every optional field present, text that needs escaping, every ticker
-  // kind, large and negative numbers.
-  Case full("full", true, true);
+  // Every optional field present, text that needs escaping, large and
+  // negative numbers.
+  Case full("full", true);
   full.d.updateMsg = "update failed: HTTP \"404\"";
   full.d.wifiFail = "wrong password\n(try again)";
   full.d.ssid = "caf\xc3\xa9 \"WiFi\" \\ 5G";
@@ -188,13 +167,6 @@ static std::vector<Case> cases() {
   full.d.wg.attempts = 7;
   full.d.wg.endpointIp = "203.0.113.9";
   full.d.wg.lastHandshake = 1793532000;
-  StatusTicker aapl{}; aapl.symbol = "AAPL"; aapl.valid = true; aapl.price = 189.37f; aapl.hasChange = true; aapl.changePct = -1.25f;
-  StatusTicker btc{};  btc.symbol = "BTC-USD"; btc.valid = true; btc.price = 67123.5f; btc.hasChange = true; btc.changePct = 12.5f; btc.onRange = true;
-  StatusTicker nochg{}; nochg.symbol = "^GSPC"; nochg.valid = true; nochg.price = 0.0001f;
-  StatusTicker bad{};  bad.symbol = "NOPE"; bad.error = true; bad.retryIn = 45;
-  StatusTicker both{}; both.symbol = "KEPT"; both.valid = true; both.error = true; both.retryIn = 0; both.price = 12.0f; both.hasChange = true; both.changePct = 0.0f;
-  StatusTicker wait{}; wait.symbol = "SOON";
-  full.tickers = {aapl, btc, nochg, bad, both, wait};
   full.radar.count = 12;
   full.radar.error = true;
   full.radar.stage = "all filtered out";
@@ -207,13 +179,13 @@ static std::vector<Case> cases() {
   full.radar.url = "https://api.adsb.lol/v2/point/48.1/11.5/25?x=\"1\"";
   all.push_back(full);
 
-  // A lean build: no ticker, no radar. The keys are not there at all.
-  Case lean("lean", false, false);
+  // A lean build: no radar. The key is not there at all.
+  Case lean("lean", false);
   lean.d.wg.compiledIn = true;   // the tunnel's own fields, none of them optional ones
   all.push_back(lean);
 
   // Radar with a zero in every optional field that is left out at zero.
-  Case zeros("zeros", true, true);
+  Case zeros("zeros", true);
   zeros.d.time = "";   // and the clock not yet synced: no "time" key
   zeros.radar.hasTried = true;
   zeros.radar.triedAgo = 0;
@@ -223,11 +195,11 @@ static std::vector<Case> cases() {
 
   // The sun text with a dimmed backlight (a middle level), and a sun text
   // that needs escaping; and no sun text with the backlight fully on.
-  Case dim("sun-dim", true, true);
+  Case dim("sun-dim", true);
   dim.d.sun = "polar \"day\"";
   dim.d.bl = 37;
   all.push_back(dim);
-  Case lit("no-sun-lit", false, false);
+  Case lit("no-sun-lit", false);
   lit.d.sun = "";
   lit.d.bl = 255;
   all.push_back(lit);
@@ -235,14 +207,15 @@ static std::vector<Case> cases() {
 }
 
 int main() {
-  // The device's own reply, as saved on 1 November 2026: every byte.
+  // The device's own reply, as saved on 1 November 2026: every byte, less the
+  // empty "tickers":[] it still carried then.
   const char* saved =
       "{\"fw\":\"mysmall-tv\",\"version\":\"3.2.1\",\"variant\":\"esp8266\",\"repo\":\"https://github.com/kewogc/mysmall-tv\","
       "\"mode\":\"sta\",\"connected\":true,\"ssid\":\"home-wifi-01\",\"ip\":\"198.51.100.177\",\"rssi\":-67,\"heap\":6384,"
       "\"maxblk\":3080,\"contstk\":660,\"uptime\":290,\"reset\":\"Software/System restart\",\"synced\":true,"
       "\"time\":\"2026-11-01 11:00\",\"tz\":\"\",\"night\":false,\"nightHeld\":false,\"clockFresh\":true,\"bl\":0,"
       "\"wg\":{\"compiledIn\":false,\"enabled\":false,\"up\":false,\"held\":false,\"badConfig\":false},"
-      "\"tickers\":[],\"radar\":{\"count\":0,\"error\":false,\"stage\":\"idle\",\"seenAc\":0}}";
+      "\"radar\":{\"count\":0,\"error\":false,\"stage\":\"idle\",\"seenAc\":0}}";
   int checked = 0;
   for (const Case& c : cases()) {
     const std::string want = reference(c);

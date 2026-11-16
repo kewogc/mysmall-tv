@@ -17,14 +17,13 @@ assert.ok(!/authEnabled/.test(html),'nothing may still read the checkbox');
 const helpers=between('function $(id)','// sun begin');
 const pwCode=between('// password begin','// password end');
 const collectCode=between('function collect(){','function saveWifi(){');   // collect() and saveAll()
-const tickerVars=between('var T_TEXT=','// IANA -> POSIX');
 const feat=between('var MODEOPT=','function modeChanged()');
 const loadCode=between('function loadConfig(){','\n})}');                // for the auth lines only
 
 function makePage(fields){
  const els={};
  const add=(id,props)=>{els[id]=Object.assign({id,style:{},textContent:'',value:''},props)};
- add('mode',{value:'stocks'});add('carouselSec',{value:'45'});add('brightness',{value:'80'});
+ add('mode',{value:'weather'});add('carouselSec',{value:'45'});add('brightness',{value:'80'});
  add('rotation',{value:'0'});add('hostname',{value:'smalltv-test'});add('apSsid',{value:'SmallTV-Test'});
  add('authUser',{value:'admin'});add('authPass',{value:''});add('authPass2',{value:''});
  add('authRemoveBtn',{style:{display:'none'}});add('authState',{});
@@ -38,7 +37,7 @@ function makePage(fields){
   j:(url,opt)=>{requests.push({url,opt,body:opt&&opt.body?JSON.parse(opt.body):null});
    return fail?Promise.reject(new Error(fail)):Promise.resolve({ok:true,reboot:false})}};
  vm.createContext(ctx);
- vm.runInContext(helpers+feat+tickerVars+pwCode+collectCode,ctx);
+ vm.runInContext(helpers+feat+pwCode+collectCode,ctx);
  return {ctx,els,requests,toasts,confirmAsked,setConfirm:v=>{confirmAnswer=v},setFail:v=>{fail=v}};
 }
 const tick=()=>new Promise(r=>setTimeout(r,0));

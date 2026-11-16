@@ -1,10 +1,12 @@
 // mysmall-tv — custom firmware for the GeekMagic SmallTV Pro (classic ESP32)
 //
-// Three features, each a self-contained DisplayMode (see Mode.h), picked in the
+// The features, each a self-contained DisplayMode (see Mode.h), picked in the
 // web UI and dispatched from the registry below:
-//   - Ticker (features/ticker):  stock/crypto price, % change, sparkline.
-//   - Usage  (features/usage):   Claude 5h/7d usage bars + animated mascot.
-//   - Radar  (features/radar):   live ADS-B plane radar (compiled in when WITH_RADAR).
+//   - Weather (features/weather): current conditions and the day's forecast.
+//   - Theme   (features/theme):   installed clock faces (compiled in when WITH_THEME).
+//   - Usage   (features/usage):   Claude 5h/7d usage bars + animated mascot (WITH_USAGE).
+//   - Radar   (features/radar):   live ADS-B plane radar (WITH_RADAR).
+//   - HA      (features/ha):      Home Assistant screens over MQTT (WITH_HA).
 // Shared plumbing (WiFi, web UI, OTA, display core, settings) lives at src root.
 //
 // License: WTFPL
@@ -27,10 +29,6 @@
 #include "NotifyMode.h"
 #endif
 
-#if WITH_TICKER
-#include "TickerMode.h"
-#include "features/ticker/StockClient.h"
-#endif
 #include "features/weather/WeatherMode.h"
 #include "features/weather/WeatherClient.h"
 #if WITH_USAGE
@@ -49,10 +47,6 @@
 // The compiled-in features, in display order. main.cpp holds no per-feature
 // state of its own — each mode owns its fetch/render/dirty tracking.
 static DisplayMode* kModes[] = {
-#if WITH_TICKER
-  &g_tickerMode,
-  &g_tickerMode2,
-#endif
   &g_weatherMode,
 #if WITH_USAGE
   &g_usageMode,
@@ -78,8 +72,6 @@ static bool     g_carPaused = false;   // button paused the auto-rotation (stays
 
 static bool carouselHas(const Settings& s, const DisplayMode* m) {
   switch (m->modeConst()) {
-    case MODE_STOCKS:  return s.carouselTicker;
-    case MODE_STOCKS2: return s.carouselTicker2;
     case MODE_WEATHER: return s.carouselWeather;
     case MODE_USAGE:   return s.carouselUsage;
     case MODE_RADAR:  return s.carouselRadar;
@@ -242,13 +234,11 @@ static void buttonNext() {
     }
   }
 
-  // Advance to next mode cyclically (Stock 1 -> Stock 2 -> Weather -> ... -> Stock 1)
+  // Advance to the next mode cyclically, in registry order
   size_t nextIdx = (curIdx >= 0) ? ((curIdx + 1) % kModeCount) : 0;
   g_settings.mode = kModes[nextIdx]->modeConst();
 
   // Defer network fetches for 800ms so rapid clicking cycles apps instantly with 0ms network latency
-  stocksDeferNextFetch(0, 800);
-  stocksDeferNextFetch(1, 800);
   weatherDeferNextFetch(800);
 
   g_abortFetch = false; // Reset abort flag for the new active mode
@@ -348,7 +338,7 @@ void buttonPoll() {
 const char* appResetReason() { return g_resetReason.c_str(); }
 
 // Called by the web portal after settings are applied: re-init every mode and
-// force a fresh repaint so a mode/URL/symbol change takes effect immediately.
+// force a fresh repaint so a mode/URL change takes effect immediately.
 void appInvalidate() {
   for (size_t i = 0; i < kModeCount; i++) kModes[i]->invalidate(g_settings);
 }
@@ -408,9 +398,10 @@ void setup() {
   Serial.println("[boot] net");
   netAllowRetry(!g_safeMode);   // a retry's reboot would clear the crash flag
   netBegin(g_settings, bootProgress);
-  // Arm SNTP now that WiFi (STA) is up — but only if night mode is enabled, so a
-  // ticker-only device doesn't pay the SNTP heap cost (which can starve the cash.ch
-  // TLS handshake on the ESP8266). clockReapply arms it iff needed. Skipped after a
+  // Arm SNTP now that WiFi (STA) is up — but only if something needs the clock
+  // (night mode, the sun schedule, a theme clock), so a device that uses none of
+  // them doesn't pay the SNTP heap cost (it matters on the ESP8266).
+  // clockReapply arms it iff needed. Skipped after a
   // crash so a fault in here can't boot-loop before the web server starts (the
   // device then comes up in safe mode, OTA-recoverable, instead of needing UART).
   // ...unless a WireGuard tunnel is configured, which needs the clock and only
@@ -552,9 +543,7 @@ void loop() {
     m->service(g_settings);
   }
 
-  // Background polling for inactive features so switching apps is instantaneous:
-  // stocksService self-times every ticker's schedule (shared across Stock 1 & Stock 2)
-  stocksService(g_settings);
+  // Background polling for inactive features so switching apps is instantaneous
   weatherService(g_settings);
 
   delay(5);

@@ -108,7 +108,7 @@ static void testStoredNoEnabledKey() {
   // No auth object at all (a config from before the password existed): open.
   Settings t;
   t.setDefaults();
-  apply(t, "{\"hostname\":\"smalltv-test\",\"mode\":\"stocks\"}");
+  apply(t, "{\"hostname\":\"smalltv-test\",\"mode\":\"weather\"}");
   CHECK(!locked(t), "no auth object: open");
   // Only enabled true, no password: nothing to check against, stays open.
   Settings u;

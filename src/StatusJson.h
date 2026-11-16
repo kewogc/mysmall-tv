@@ -16,8 +16,7 @@
 // test can compare it with the old way, byte for byte.
 //
 // Call order: writeStatusHead(), then writeStatusCrash() if there is a crash
-// record, writeStatusTickers() if the build has
-// the ticker, writeStatusRadar() if it has the radar, and writeStatusEnd().
+// record, writeStatusRadar() if the build has the radar, and writeStatusEnd().
 #include "JsonStream.h"
 
 namespace smalltv {
@@ -55,15 +54,6 @@ struct StatusCrash {
   const char *exccause = "", *epc = "", *addr = "";
   bool hasUptime = false;
   uint32_t uptime = 0;
-};
-struct StatusTicker {
-  const char* symbol = "";
-  bool valid = false, error = false;
-  uint32_t retryIn = 0;         // written when `error`
-  float price = 0;              // written when `valid`
-  bool hasChange = false;       // changePct and basis follow price
-  float changePct = 0;
-  bool onRange = false;         // the change is over the range, not the day
 };
 struct StatusRadar {
   uint8_t count = 0;
@@ -144,28 +134,6 @@ template <class Out> void writeStatusCrash(Out& out, const StatusCrash& k) {
   if (k.addr[0]) member(out, PSTR(",\"addr\":"), k.addr);
   if (k.hasUptime) member(out, PSTR(",\"uptime\":"), k.uptime);
   jsonout::raw(out, PSTR("}"));
-}
-
-// `,"tickers":[...]`, row i from rowAt(i).
-template <class Out, class Row> void writeStatusTickers(Out& out, size_t count, Row&& rowAt) {
-  using statusout::member;
-  jsonout::raw(out, PSTR(",\"tickers\":["));
-  for (size_t i = 0; i < count; i++) {
-    const StatusTicker t = rowAt(i);
-    member(out, i ? PSTR(",{\"symbol\":") : PSTR("{\"symbol\":"), t.symbol);
-    member(out, PSTR(",\"valid\":"), t.valid);
-    member(out, PSTR(",\"error\":"), t.error);
-    if (t.error) member(out, PSTR(",\"retryIn\":"), t.retryIn);
-    if (t.valid) {
-      member(out, PSTR(",\"price\":"), t.price);
-      if (t.hasChange) {
-        member(out, PSTR(",\"changePct\":"), t.changePct);
-        member(out, PSTR(",\"basis\":"), t.onRange ? "range" : "day");
-      }
-    }
-    jsonout::raw(out, PSTR("}"));
-  }
-  jsonout::raw(out, PSTR("]"));
 }
 
 // `,"radar":{...}`.

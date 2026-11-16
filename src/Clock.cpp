@@ -45,8 +45,8 @@ void clockReapply(const Settings& s) {
   s_sunAt = (time_t)-1;
   // SNTP only runs when something needs it. Starting the lwIP SNTP client is a
   // permanent mid-arena heap allocation, and on the memory-tight ESP8266 that can
-  // fragment the largest contiguous block below what the cash.ch TLS handshake
-  // needs (blanking those tickers). So arm on the first enable, re-arm on a
+  // fragment the largest contiguous block below what a TLS handshake needs.
+  // So arm on the first enable, re-arm on a
   // timezone change, and otherwise leave it alone. Night mode is one caller; a
   // WireGuard tunnel and theme clocks also need it. The peer rejects a handshake stamped
   // with a wrong clock (and that build is an ESP32, where the heap cost is moot).
