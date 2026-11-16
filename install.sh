@@ -3,8 +3,8 @@
 # WiFi through its web updater (POST /update). Works when the device runs the
 # stock GeekMagic firmware or this mod: both take the same multipart upload.
 #
-#   ./install.sh 192.168.2.229                 build, then install
-#   ./install.sh 192.168.2.229 path/to/fw.bin  install an existing OTA image
+#   ./install.sh 192.168.1.50                 build, then install
+#   ./install.sh 192.168.1.50 path/to/fw.bin  install an existing OTA image
 #
 # Environment:
 #   PIO_ENV        env to build (default smalltv_esp32_8mb, the SmallTV Pro)

@@ -29,8 +29,8 @@
 ## Установка
 
 ```bash
-./install.sh 192.168.2.229                # собрать и залить
-./install.sh 192.168.2.229 firmware.bin   # залить готовый образ
+./install.sh 192.168.1.50                # собрать и залить
+./install.sh 192.168.1.50 firmware.bin   # залить готовый образ
 ```
 
 Скрипт заливает образ через `/update`, работает и поверх заводской прошивки GeekMagic, и поверх этой.
@@ -62,7 +62,7 @@
 ```bash
 curl -H 'Content-Type: application/json' \
   -d '{"anim":"mailbox","title":"GITHUB","label":"PR merged","ttl":5}' \
-  http://192.168.2.229/api/notify
+  http://192.168.1.50/api/notify
 ```
 
 | Поле | Обязательное | Значение |
