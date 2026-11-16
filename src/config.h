@@ -10,7 +10,7 @@
 // Firmware identity
 // ---------------------------------------------------------------------------
 #define FW_NAME     "mysmall-tv"
-#define FW_VERSION  "1.0.1"
+#define FW_VERSION  "1.1.0"
 
 // Project / update references (shown in the web UI; used by the GitHub self-update)
 #define REPO_URL      "https://github.com/kewogc/mysmall-tv"
