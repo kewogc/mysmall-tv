@@ -213,6 +213,17 @@
 #ifndef WITH_RADAR
 #define WITH_RADAR 0
 #endif
+// CI builds (features/ci): while a Drone build runs, the screen shows it
+// instead of the active feature. Settings: the `ci` slice.
+#ifndef WITH_CI
+#define WITH_CI 1
+#endif
+#define CI_MAX_URL_LEN    96    // Drone base URL
+#define CI_MAX_TOKEN_LEN  64    // Drone personal token (32 hex today)
+#define DEFAULT_CI_POLL_SEC    10
+#define DEFAULT_CI_SPLASH_SEC  4    // how long a newly seen build fills the screen
+#define DEFAULT_CI_FAIL_SEC    10   // how long a failed build stays on the screen
+#define DEFAULT_CI_DONE_SEC    5    // how long a finished build stays in the list
 #ifndef WITH_NOTIFY
 #define WITH_NOTIFY 1
 #endif

@@ -68,18 +68,35 @@ small.hint{display:block;color:var(--mut);margin-top:4px;font-size:12px}
 
  <!-- GENERAL (Mode & Carousel) -->
  <section id="general" class="tab">
-  <div class="card"><h2>Mode (작동 모드)</h2>
-   <label>What this device shows (화면 표시 모드)</label>
+  <div class="card"><h2>Mode</h2>
+   <label>What this device shows</label>
    <select id="mode" onchange="modeChanged()">
-    <option value="weather">Weather (날씨)</option>
-    <option value="carousel">Carousel (rotate modes / 자동 순환)</option>
+    <option value="weather">Weather</option>
+    <option value="theme">Theme clock</option>
+    <option value="carousel">Carousel (rotate modes)</option>
    </select>
    <div id="carouselRow">
-    <label>Switch mode every (순환 주기, 분)</label><input id="carouselMin" type="number" min="0.5" max="120" step="0.5" placeholder="예: 1 또는 3">
-    <label style="margin-top:12px;margin-bottom:6px">Rotate through apps (순환에 포함할 앱 선택)</label>
-    <div class="chk"><input id="carouselWeather" type="checkbox"><label>Weather (날씨)</label></div>
+    <label>Switch mode every (minutes)</label><input id="carouselMin" type="number" min="0.5" max="120" step="0.5" placeholder="1">
+    <label style="margin-top:12px;margin-bottom:6px">Rotate through</label>
+    <div class="chk"><input id="carouselWeather" type="checkbox"><label>Weather</label></div>
+    <div class="chk"><input id="carouselTheme" type="checkbox"><label>Theme clock</label></div>
    </div>
-   <small class="hint">Carousel(자동 순환) 모드를 선택하면 아래 체크된 앱들이 설정한 순환 주기(초)마다 번갈아가며 자동으로 화면에 표시됩니다. 특정 앱만 고정하고 싶다면 원하는 모드를 선택하세요.</small>
+   <small class="hint">In carousel mode the ticked modes take turns on the screen, each for the time set above. To keep one mode on the screen, pick it in the list. A theme clock is installed and chosen on the Display tab.</small>
+  </div>
+  <div class="card" id="ciCard"><h2>CI builds (Drone)</h2>
+   <div id="ciStatus" class="muted" style="margin-bottom:10px">-</div>
+   <div class="chk"><input id="ciEnabled" type="checkbox"><label>Show running builds on the screen</label></div>
+   <label>Drone address</label>
+   <input id="ciUrl" type="text" autocomplete="off" placeholder="https://drone.example.com">
+   <label>Access token</label>
+   <input id="ciToken" type="password" autocomplete="off" placeholder="(unchanged)">
+   <div class="row">
+    <div><label>Poll every (s)</label><input id="ciPollSec" type="number" min="5" max="600"></div>
+    <div><label>New build (s)</label><input id="ciSplashSec" type="number" min="0" max="30"></div>
+    <div><label>Failed build (s)</label><input id="ciFailSec" type="number" min="0" max="120"></div>
+   </div>
+   <div style="margin-top:12px"><button class="btn sec" onclick="ciDemo()">Show a demo</button></div>
+   <small class="hint">While a build runs on the Drone server, the screen shows it instead of the current mode. A new build comes up alone, with the picture of the person who started it; then the running builds are listed with their progress. A failed build stays on the screen for the time set here. The token is the personal token from your Drone account page, and it has to be an administrator's: only an administrator can list every running build. It gives its owner's full rights on the server and is kept on the device as plain text, so set a password for this page on the System tab. The page never reads the token back.</small>
   </div>
   <button class="btn" onclick="saveAll()">Save settings</button>
  </section>
@@ -230,12 +247,12 @@ small.hint{display:block;color:var(--mut);margin-top:4px;font-size:12px}
 
   <!-- WEATHER (feature) -->
   <section id="weather" class="tab">
-   <div class="card"><h2>Weather Data Refresh (날씨 데이터 갱신 주기)</h2>
-    <label>Refresh weather every (날씨 데이터 갱신 주기, 분)</label>
+   <div class="card"><h2>Weather refresh</h2>
+    <label>Refresh weather every (minutes)</label>
     <input id="weatherPollMin" type="number" min="1" max="1440" step="1" placeholder="10">
-    <small class="hint">wttr.in에서 실시간 날씨 데이터를 가져오는 주기(분 단위, 기본 10분)입니다.</small>
+    <small class="hint">How often the current weather is asked from wttr.in, in minutes. 10 by default.</small>
    </div>
-   <div class="card"><h2>Weather Location (날씨 위치 설정)</h2>
+   <div class="card"><h2>Weather location</h2>
     <label>Location coordinates</label>
     <div class="row">
      <div><label>Latitude (위도)</label><input id="wLat" type="number" step="0.0001" placeholder="37.5665"></div>
@@ -249,7 +266,7 @@ small.hint{display:block;color:var(--mut);margin-top:4px;font-size:12px}
     <div style="margin-top:10px">
      <button class="btn sec" onclick="applyWeatherLoc()">Apply to Clock &amp; Weather</button>
     </div>
-    <small class="hint">Open-Meteo API를 사용하여 실시간 날씨 및 일일 최저/최고 기온, 습도, 풍속을 가져옵니다. 기본값은 서울(37.566, 126.9784)입니다.</small>
+    <small class="hint">The place the weather is shown for: the current conditions, the day's lowest and highest temperature, humidity and wind.</small>
    </div>
    <div class="card"><h2>Quick Presets (빠른 지역 선택)</h2>
     <div class="row">
@@ -457,6 +474,18 @@ function hideFeat(name){
  var o=document.querySelector('#mode option[value="'+MODEOPT[name]+'"]'); if(o)o.remove();
  var c=$(CAROPT[name]); if(c)c.closest('.chk').remove();
 }
+// CI builds card: what the poll is doing, and the demo button.
+function ciNum(id,d){var v=parseInt(gv(id)); return isNaN(v)?d:v}
+function ciStatus(){var e=$('ciStatus'); if(!e)return;
+ j('/api/ci').then(function(s){
+  if(!s.enabled)e.textContent='Off';
+  else if(!s.configured)e.textContent='Enter the Drone address and the token';
+  else if(!s.polled)e.textContent='Waiting for the first reply';
+  else if(!s.ok)e.textContent='Error: '+s.error;
+  else if(s.running)e.textContent='Builds running: '+s.running;
+  else e.textContent='Connected, no builds are running';
+ }).catch(function(){})}
+function ciDemo(){j('/api/ci/demo',{method:'POST'}).then(function(){toast('Demo started, watch the screen')}).catch(function(e){toast(e.message)})}
 function modeChanged(){if(!$('mode'))return;
  $('carouselRow').style.display=$('mode').value==='carousel'?'block':'none';}
 
@@ -485,6 +514,11 @@ function loadConfig(){return j('/api/config').then(function(c){C=c;
   sv('btnSens',b.sensitivity!=null?b.sensitivity:85);
   $('btnSensVal')&&($('btnSensVal').textContent=(b.sensitivity!=null?b.sensitivity:85));
  }
+ var ci=c.ci||{};
+ sc('ciEnabled',!!ci.enabled); sv('ciUrl',ci.url);
+ sv('ciPollSec',ci.pollSec!=null?ci.pollSec:10); sv('ciSplashSec',ci.splashSec!=null?ci.splashSec:4); sv('ciFailSec',ci.failSec!=null?ci.failSec:10);
+ var ct=$('ciToken'); if(ct)ct.placeholder=ci.tokenSet?'(unchanged)':'paste the token';
+ ciStatus();
  var w=c.wg||{};
  sc('wgEnabled',!!w.enabled); sv('wgPeerPublicKey',w.peerPublicKey);
  sv('wgEndpointHost',w.endpointHost); sv('wgEndpointPort',w.endpointPort||51820);
@@ -609,6 +643,13 @@ function collect(){
  // blank field unconditionally used to wipe the stored password on every save.
  if(gc('apOpen')) o.apPass='';
  else { var _ap=gv('apPass'); if(_ap) o.apPass=_ap; }
+ // CI builds: like the WireGuard key, a blank token keeps the stored one.
+ if($('ciCard')){
+  var ci={enabled:gc('ciEnabled'), url:gv('ciUrl'), pollSec:ciNum('ciPollSec',10),
+   splashSec:ciNum('ciSplashSec',4), failSec:ciNum('ciFailSec',10)};
+  var tk=gv('ciToken'); if(tk)ci.token=tk;
+  o.ci=ci;
+ }
  // WireGuard: a blank private key means "keep the stored one", so only send it
  // when the user actually typed something.
  if($('wgCard')){
@@ -870,6 +911,7 @@ function upload(){var f=$('fw').files[0];if(!f){toast('Pick a .bin first');retur
 }
 
 loadConfig().then(loadStatus,loadStatus);   // the status polls on, whatever the config did
+setInterval(function(){var e=$('ciStatus'); if(e&&e.offsetParent!==null&&!document.hidden)ciStatus()},5000);   // the CI card, while it is on the screen
 // i18n begin (tested by tests/i18n/test_webui.js)
 // English is the source text of the page, in the HTML and in the code above.
 // Russian is laid over it: RU maps an English text to its translation, and
@@ -927,14 +969,30 @@ var RU={
 "all filtered out":"все отфильтрованы",
 "idle":"ожидание",
 // general
-"Mode (작동 모드)":"Режим работы",
-"What this device shows (화면 표시 모드)":"Что показывать на экране",
-"Weather (날씨)":"Погода",
-"Carousel (rotate modes / 자동 순환)":"Карусель (режимы по очереди)",
-"Switch mode every (순환 주기, 분)":"Менять режим каждые (мин)",
-"예: 1 또는 3":"например, 1 или 3",
-"Rotate through apps (순환에 포함할 앱 선택)":"Что включить в карусель",
-"Carousel(자동 순환) 모드를 선택하면 아래 체크된 앱들이 설정한 순환 주기(초)마다 번갈아가며 자동으로 화면에 표시됩니다. 특정 앱만 고정하고 싶다면 원하는 모드를 선택하세요.":"В режиме «Карусель» отмеченные экраны сменяют друг друга через заданное время. Чтобы на экране постоянно оставался один из них, выберите его режим.",
+"Mode":"Режим работы",
+"What this device shows":"Что показывать на экране",
+"Theme clock":"Тема-циферблат",
+"Carousel (rotate modes)":"Карусель (режимы по очереди)",
+"Switch mode every (minutes)":"Менять режим каждые (мин)",
+"Rotate through":"Что включить в карусель",
+"In carousel mode the ticked modes take turns on the screen, each for the time set above. To keep one mode on the screen, pick it in the list. A theme clock is installed and chosen on the Display tab.":"В режиме «Карусель» отмеченные экраны сменяют друг друга через заданное время. Чтобы на экране постоянно оставался один из них, выберите его в списке. Тема-циферблат устанавливается и выбирается на вкладке «Дисплей».",
+"CI builds (Drone)":"Сборки CI (Drone)",
+"Show running builds on the screen":"Показывать идущие сборки на экране",
+"Drone address":"Адрес Drone",
+"Access token":"Токен доступа",
+"paste the token":"вставьте токен",
+"Poll every (s)":"Опрос каждые (с)",
+"New build (s)":"Новая сборка (с)",
+"Failed build (s)":"Упавшая сборка (с)",
+"Show a demo":"Показать пример",
+"While a build runs on the Drone server, the screen shows it instead of the current mode. A new build comes up alone, with the picture of the person who started it; then the running builds are listed with their progress. A failed build stays on the screen for the time set here. The token is the personal token from your Drone account page, and it has to be an administrator's: only an administrator can list every running build. It gives its owner's full rights on the server and is kept on the device as plain text, so set a password for this page on the System tab. The page never reads the token back.":"Пока на сервере Drone идёт сборка, экран показывает её вместо текущего режима. Новая сборка сначала появляется одна, с аватаркой того, кто её запустил; затем идущие сборки выводятся списком с прогрессом. Упавшая сборка остаётся на экране на заданное здесь время. Токен — личный токен со страницы вашей учётной записи Drone, причём администратора: список всех идущих сборок доступен только ему. Токен даёт на сервере все права владельца и хранится на часах открытым текстом, поэтому задайте пароль для этой страницы на вкладке «Система». Обратно страница токен не показывает.",
+"Off":"Выключено",
+"Enter the Drone address and the token":"Укажите адрес Drone и токен",
+"Waiting for the first reply":"Ждём первый ответ",
+"Error: {0}":"Ошибка: {0}",
+"Builds running: {0}":"Идёт сборок: {0}",
+"Connected, no builds are running":"Подключено, сборок сейчас нет",
+"Demo started, watch the screen":"Пример запущен, смотрите на экран",
 "Save settings":"Сохранить настройки",
 "Save failed":"Не удалось сохранить",
 "Save failed: {0}":"Не удалось сохранить: {0}",
@@ -1073,10 +1131,10 @@ var RU={
 "{0} Brightness now: {1}%.":"{0} Яркость сейчас: {1}%.",
 "Today: {0}. Fades start at sunrise and at sunset.":"Сегодня: {0}. Яркость начинает меняться в момент восхода и заката.",
 // weather
-"Weather Data Refresh (날씨 데이터 갱신 주기)":"Обновление данных о погоде",
-"Refresh weather every (날씨 데이터 갱신 주기, 분)":"Обновлять погоду каждые (мин)",
-"wttr.in에서 실시간 날씨 데이터를 가져오는 주기(분 단위, 기본 10분)입니다.":"Как часто запрашивать текущую погоду у wttr.in (в минутах, по умолчанию 10).",
-"Weather Location (날씨 위치 설정)":"Место для прогноза погоды",
+"Weather refresh":"Обновление данных о погоде",
+"Refresh weather every (minutes)":"Обновлять погоду каждые (мин)",
+"How often the current weather is asked from wttr.in, in minutes. 10 by default.":"Как часто запрашивать текущую погоду у wttr.in (в минутах, по умолчанию 10).",
+"Weather location":"Место для прогноза погоды",
 "Location coordinates":"Координаты",
 "Latitude (위도)":"Широта",
 "Longitude (경도)":"Долгота",
@@ -1084,7 +1142,7 @@ var RU={
 "Select a place...":"Выберите место…",
 "Location search failed":"Не удалось выполнить поиск",
 "Apply to Clock & Weather":"Применить для времени и погоды",
-"Open-Meteo API를 사용하여 실시간 날씨 및 일일 최저/최고 기온, 습도, 풍속을 가져옵니다. 기본값은 서울(37.566, 126.9784)입니다.":"Текущая погода, минимальная и максимальная температура за день, влажность и скорость ветра берутся из Open-Meteo API. По умолчанию выбран Сеул (37.566, 126.9784).",
+"The place the weather is shown for: the current conditions, the day's lowest and highest temperature, humidity and wind.":"Место, для которого показывается погода: текущие условия, минимальная и максимальная температура за день, влажность и ветер.",
 "Quick Presets (빠른 지역 선택)":"Быстрый выбор города",
 "서울 (Seoul)":"Сеул",
 "부산 (Busan)":"Пусан",

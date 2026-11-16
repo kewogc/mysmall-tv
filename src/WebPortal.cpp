@@ -16,6 +16,10 @@
 #if WITH_NOTIFY
 #include "NotifyMode.h"
 #endif
+#if WITH_CI
+#include "features/ci/CiClient.h"
+#include "features/ci/CiScreen.h"
+#endif
 #include "Clock.h"
 #include "WgClient.h"
 #if WITH_THEME
@@ -133,6 +137,7 @@ static void handleGetConfig() {
   feat["radar"]  = (bool)WITH_RADAR;
   feat["ha"]     = (bool)WITH_HA;
   feat["theme"]  = (bool)WITH_THEME;
+  feat["ci"]     = (bool)WITH_CI;
   // WireGuard is a per-chip decision rather than a per-feature one: it is
   // compiled only where the image has room for it (the ESP32-C2 build).
 #if defined(SMALLTV_WIREGUARD)
@@ -268,6 +273,17 @@ static String netFingerprint(const Settings& s) {
 // Everything the tunnel is built from. A change here tears it down and brings
 // it back up with the new settings; an unchanged save leaves a working tunnel
 // alone.
+// The CI settings that decide what is polled and for how long it is shown.
+static String ciFingerprint(const Settings& s) {
+  String f(s.ci.enabled ? '1' : '0');
+  f += s.ci.url;   f += '\x01';
+  f += s.ci.token; f += '\x01';
+  f += String(s.ci.pollSec);   f += '\x01';
+  f += String(s.ci.splashSec); f += '\x01';
+  f += String(s.ci.failSec);
+  return f;
+}
+
 static String wgFingerprint(const Settings& s) {
   String f(s.wg.enabled ? '1' : '0');
   f += s.wg.privateKey;    f += '\x01';
@@ -306,6 +322,7 @@ static void handlePostConfig() {
 
   String oldNet = netFingerprint(*S);
   String oldWg = wgFingerprint(*S);
+  String oldCi = ciFingerprint(*S);
 
   // The request is freed once applied, before saveSettings() builds its own
   // document: the two together do not fit on the ESP8266.
@@ -322,6 +339,12 @@ static void handlePostConfig() {
   gfxApplyColors(*S);       // rotation, panel colour order/inversion, channel gain
   gfxSetLang(S->clock.lang.c_str());   // language of the on-screen text
   appInvalidate();          // re-init every mode + repaint (covers mode/URL changes)
+#if WITH_CI
+  // Other settings leave the builds on the screen alone; the feature above
+  // just drew over them, so they are redrawn.
+  if (ciFingerprint(*S) != oldCi) ciApplySettings(*S);
+  ciScreenInvalidate();
+#endif
 
   // Rebuild the tunnel when its settings changed. A save that changes nothing
   // still rebuilds while the tunnel is held after repeated crashes: that
@@ -505,6 +528,36 @@ static void handleActivity() {
 // send credentials, and taking over the whole screen is not something to leave
 // open on a device you deliberately locked.
 #if WITH_NOTIFY
+#if WITH_CI
+// What the CI poll is doing, for the settings page.
+static void handleCiState() {
+  if (!requireAuth()) return;
+  const CiState st = ciState(*S);
+  JsonDocument doc;
+  doc["enabled"] = st.enabled;
+  doc["configured"] = S->ci.url.length() > 0 && S->ci.token.length() > 0;
+  doc["demo"] = st.demo;
+  doc["polled"] = st.polled;
+  doc["ok"] = st.ok;
+  doc["error"] = st.error;
+  doc["lastPollSec"] = st.lastPollSec;
+  doc["running"] = st.running;
+  String out;
+  serializeJson(doc, out);
+  server.send(200, "application/json", out);
+}
+
+// Run the build screens once with made-up builds. An optional body
+// {"avatar":"https://..."} gives them that picture.
+static void handleCiDemo() {
+  if (!requireAuth()) return;
+  JsonDocument doc;
+  if (server.hasArg("plain")) deserializeJson(doc, server.arg("plain"));
+  ciStartDemo(doc["avatar"] | "");
+  server.send(200, "application/json", "{\"ok\":true}");
+}
+#endif
+
 static void handleNotify() {
   if (!requireAuth()) return;
   if (!server.hasArg("plain")) { server.send(400, "text/plain", "no body"); return; }
@@ -665,6 +718,10 @@ void webPortalBegin(Settings& settings) {
 #endif
 #if WITH_NOTIFY
   server.on("/api/notify", HTTP_POST, handleNotify);     // full-screen attention overlay
+#endif
+#if WITH_CI
+  server.on("/api/ci", HTTP_GET, handleCiState);
+  server.on("/api/ci/demo", HTTP_POST, handleCiDemo);
 #endif
   server.on("/update", HTTP_POST, handleUpdateDone, handleUpdateUpload);
 

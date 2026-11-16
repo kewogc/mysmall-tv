@@ -175,6 +175,52 @@ void WgSettings::setDefaults() {
   keepalive = DEFAULT_WG_KEEPALIVE;
 }
 
+// ===========================================================================
+// CI builds slice
+// ===========================================================================
+void CiSettings::setDefaults() {
+  enabled   = false;
+  url       = "";
+  token     = "";
+  pollSec   = DEFAULT_CI_POLL_SEC;
+  splashSec = DEFAULT_CI_SPLASH_SEC;
+  failSec   = DEFAULT_CI_FAIL_SEC;
+}
+
+void CiSettings::toJson(JsonObject o, bool includeSecrets) const {
+  o["enabled"]   = enabled;
+  o["url"]       = url;
+  o["pollSec"]   = pollSec;
+  o["splashSec"] = splashSec;
+  o["failSec"]   = failSec;
+  // The token gives its owner's full rights on the CI server: it reaches the
+  // config file and the settings export, never the web API.
+  o["tokenSet"]  = token.length() > 0;
+  if (includeSecrets) o["token"] = token;
+}
+
+void CiSettings::fromJson(JsonObjectConst o) {
+  if (o["enabled"].is<bool>())      enabled = o["enabled"];
+  if (o["url"].is<const char*>()) {
+    url = o["url"].as<String>();
+    url.trim();
+    while (url.endsWith("/")) url.remove(url.length() - 1);   // paths are appended with their own slash
+  }
+  if (o["pollSec"].is<int>())       pollSec   = constrain((int)o["pollSec"], 5, 600);
+  if (o["splashSec"].is<int>())     splashSec = constrain((int)o["splashSec"], 0, 30);
+  if (o["failSec"].is<int>())       failSec   = constrain((int)o["failSec"], 0, 120);
+  // Blank keeps the stored token, so the web UI can save the rest of the form
+  // without ever holding the secret; "removeToken": true takes it off.
+  if (o["removeToken"].is<bool>() && o["removeToken"].as<bool>()) token = "";
+  if (o["token"].is<const char*>()) {
+    String t = o["token"].as<String>();
+    t.trim();
+    if (t.length()) token = t;
+  }
+  if (url.length()   >= CI_MAX_URL_LEN)   url.remove(CI_MAX_URL_LEN - 1);
+  if (token.length() >= CI_MAX_TOKEN_LEN) token.remove(CI_MAX_TOKEN_LEN - 1);
+}
+
 void WgSettings::toJson(JsonObject o, bool includeSecrets) const {
   o["enabled"]        = enabled;
   o["peerPublicKey"]  = peerPublicKey;
@@ -404,6 +450,7 @@ void Settings::setDefaults() {
   clock.setDefaults();
   display.setDefaults();
   wg.setDefaults();
+  ci.setDefaults();
   auth.setDefaults();
   button.setDefaults();
 }
@@ -501,6 +548,7 @@ void settingsToJson(const Settings& s, JsonObject root, bool includeSecrets) {
   s.clock.toJson(root["clock"].to<JsonObject>());
   s.display.toJson(root["display"].to<JsonObject>());
   s.wg.toJson(root["wg"].to<JsonObject>(), includeSecrets);
+  s.ci.toJson(root["ci"].to<JsonObject>(), includeSecrets);
   s.auth.toJson(root["auth"].to<JsonObject>(), includeSecrets);
   s.button.toJson(root["button"].to<JsonObject>());
 }
@@ -594,6 +642,7 @@ void settingsApplyJson(Settings& s, JsonObjectConst root) {
   if (root["clock"].is<JsonObjectConst>()) s.clock.fromJson(root["clock"].as<JsonObjectConst>());
   if (root["display"].is<JsonObjectConst>()) s.display.fromJson(root["display"].as<JsonObjectConst>());
   if (root["wg"].is<JsonObjectConst>()) s.wg.fromJson(root["wg"].as<JsonObjectConst>());
+  if (root["ci"].is<JsonObjectConst>()) s.ci.fromJson(root["ci"].as<JsonObjectConst>());
   if (root["auth"].is<JsonObjectConst>()) s.auth.fromJson(root["auth"].as<JsonObjectConst>());
   if (root["button"].is<JsonObjectConst>()) s.button.fromJson(root["button"].as<JsonObjectConst>());
 

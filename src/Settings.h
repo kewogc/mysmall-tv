@@ -94,6 +94,22 @@ struct WgSettings {
   void fromJson(JsonObjectConst o);
 };
 
+// ---- CI builds slice (features/ci) -----------------------------------------
+// Polls a Drone server for running builds and shows them over the active
+// feature. The token is a secret, handled like the WireGuard private key.
+struct CiSettings {
+  bool     enabled;
+  String   url;        // Drone base URL, e.g. "https://drone.example.com"
+  String   token;      // personal token; never leaves the config file
+  uint16_t pollSec;    // seconds between polls
+  uint8_t  splashSec;  // a newly seen build fills the screen this long
+  uint8_t  failSec;    // a failed build stays on the screen this long
+
+  void setDefaults();
+  void toJson(JsonObject o, bool includeSecrets) const;
+  void fromJson(JsonObjectConst o);
+};
+
 // ---- Panel colour slice (device-wide) --------------------------------------
 // Same firmware, different panels: the SmallTV variants and even units of one
 // variant render the same RGB565 value differently, and a few have red and blue
@@ -199,6 +215,7 @@ struct Settings {
   ClockSettings   clock;
   DisplaySettings display;   // panel colour correction
   WgSettings      wg;        // WireGuard tunnel (ESP32 targets)
+  CiSettings      ci;        // CI builds shown over the active feature
   AuthSettings    auth;      // optional web UI password
   ButtonSettings  button;    // physical button behaviour (boards with BTN_PIN)
 

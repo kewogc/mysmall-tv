@@ -28,6 +28,10 @@
 #if WITH_NOTIFY
 #include "NotifyMode.h"
 #endif
+#if WITH_CI
+#include "features/ci/CiClient.h"
+#include "features/ci/CiScreen.h"
+#endif
 
 #include "features/weather/WeatherMode.h"
 #include "features/weather/WeatherClient.h"
@@ -434,6 +438,9 @@ void setup() {
 
   Serial.println("[boot] modes");
   for (size_t i = 0; i < kModeCount; i++) kModes[i]->begin(g_settings);
+#if WITH_CI
+  ciBegin(g_settings);
+#endif
   Serial.println("[boot] done");
 
   if (netMode() == NET_AP) {
@@ -534,7 +541,24 @@ void loop() {
     if (g_carSwitch) g_carSwitch += g_notifyMode.heldMs();
   }
 #else
-  const bool restore = false;
+  bool restore = false;
+#endif
+
+  // A running CI build has the screen next, under a notification and over the
+  // active feature. The poll goes on whether or not anything is shown.
+#if WITH_CI
+  static bool wasCi = false;
+  ciService(g_settings);
+  if (ciScreenActive()) {
+    ciScreenService(restore);
+    wasCi = true;
+    delay(5);
+    return;
+  }
+  if (wasCi) {      // the builds are over: the feature repaints
+    wasCi = false;
+    restore = true;
+  }
 #endif
 
   DisplayMode* m = activeMode(g_settings);
