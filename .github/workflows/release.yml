@@ -1,0 +1,45 @@
+name: Release
+
+# A pushed tag vA.B.C builds the firmware the same way ./build.sh does locally
+# and publishes it as a GitHub release. Devices self-update from the asset
+# named by UPDATE_ASSET in src/config.h.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag must match FW_VERSION
+        run: |
+          version=$(sed -nE 's/^#define FW_VERSION +"([^"]+)".*/\1/p' src/config.h)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match FW_VERSION $version in src/config.h" >&2
+            exit 1
+          fi
+
+      - name: Cache PlatformIO toolchains
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pio-docker
+          key: pio-${{ hashFiles('platformio.ini', 'docker/Dockerfile') }}
+
+      - name: Build
+        run: ./build.sh
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          asset=$(sed -nE 's/^#define UPDATE_ASSET +"([^"]+)".*/\1/p' src/config.h)
+          cp dist/smalltv_esp32_8mb/firmware.bin "$asset"
+          cp dist/smalltv_esp32_8mb/firmware.factory.bin "${asset%.bin}-factory.bin"
+          gh release create "$GITHUB_REF_NAME" "$asset" "${asset%.bin}-factory.bin" \
+            --title "$GITHUB_REF_NAME" --generate-notes
